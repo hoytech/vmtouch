@@ -606,7 +606,7 @@ int main(int argc, char **argv) {
       printf("  Resident Pages: %" PRId64 "/%" PRId64 "  ", total_pages_in_core, total_pages);
       printf("%s/", pretty_print_size(total_pages_in_core*pagesize));
       printf("%s  ", pretty_print_size(total_pages*pagesize));
-      printf("%.3g%%\n", 100.0*total_pages_in_core/total_pages);
+      printf(total_pages ? "%.3g%%\n" : "\n", 100.0*total_pages_in_core/total_pages);
     }
     printf("         Elapsed: %.5g seconds\n", (end_time.tv_sec - start_time.tv_sec) + (double)(end_time.tv_usec - start_time.tv_usec)/1000000.0);
   }
