@@ -1,0 +1,8 @@
+0.7.3
+  * Solaris support for page eviction
+
+0.7.2
+  * Portability fixes
+
+0.7.1
+  * First public release

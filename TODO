@@ -1,0 +1,6 @@
+* -p "page mode" for touching, evicting, or locking just a range of pages in
+  a file... same format as nmap -p. 4k-50k, 1.5G-2G, -5M, -
+
+* Continually call mincore() every time a residency chart is drawn
+
+* In daemon mode, make fatal errors go to syslog.

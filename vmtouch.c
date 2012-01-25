@@ -34,30 +34,6 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
 THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-************************************************************************
-
-CHANGES:
-
-0.7.3
-  * Solaris support for page eviction
-
-0.7.2
-  * Portability fixes
-
-0.7.1
-  * First public release
-
-************************************************************************
-
-TODO:
-
-* -p "page mode" for touching, evicting, or locking just a range of pages in
-  a file... same format as nmap -p. 4k-50k, 1.5G-2G, -5M, -
-
-* Continually call mincore() every time a residency chart is drawn
-
-* In daemon mode, make fatal errors go to syslog.
-
 ***********************************************************************/
 
 
