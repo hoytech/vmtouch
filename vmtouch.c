@@ -357,7 +357,7 @@ void vmtouch_file(char *path) {
 #if defined(__linux__)
     if (posix_fadvise(fd, 0, len_of_file, POSIX_FADV_DONTNEED))
       warning("unable to posix_fadvise file %s (%s)", path, strerror(errno));
-#elif defined(__FreeBSD__) || defined(__sun__)
+#elif defined(__FreeBSD__) || defined(__sun__) || defined(__APPLE__)
     if (msync(mem, len_of_file, MS_INVALIDATE))
       warning("unable to msync invalidate file %s (%s)", path, strerror(errno));
 #else
