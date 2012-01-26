@@ -1,3 +1,9 @@
+upcoming
+  * Patch from Marc Brooker: avoid overflowing stack when
+    allocating array for mincore() output
+  * Patch from Federico Lucifredi: Avoid ugly NaNs in output
+  * Full OS X support: msync(2) evicts pages on this system
+
 0.7.3
   * Solaris support for page eviction
 
