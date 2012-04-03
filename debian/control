@@ -1,0 +1,23 @@
+Source: vmtouch
+Section: admin
+Priority: extra
+Maintainer: Alexey Ivanov <rbtz@yandex-team.ru>
+Build-Depends: debhelper (>= 7.0.50~)
+Standards-Version: 3.9.2
+Homepage: http://hoytech.com/vmtouch/
+Vcs-Git: git://github.com/hoytech/vmtouch.git
+Vcs-Browser: https://github.com/hoytech/vmtouch
+
+Package: vmtouch
+Architecture: all
+Depends: ${misc:Depends}, ${shlibs:Depends}, ${perl:Depends}
+Description: Portable file system cache diagnostics and control
+ vmtouch is a tool for learning about and controlling the file system cache of
+ unix and unix-like systems.
+
+Package: vmtouch-dbg
+Section: debug
+Priority: extra
+Architecture: all
+Depends: vmtouch (= ${binary:Version}), ${misc:Depends}
+Description: Debug symbols for vmtouch
