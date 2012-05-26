@@ -181,10 +181,10 @@ char *pretty_print_size(int64_t inp) {
 }
 
 /*
- *    Convert ASCII string to int64_t number
- *		XXX: the parameter of (inp) must can't be a 
- *			character constant, the function will 
- *			change it through (inp[len-1] = '\0');
+ *  Convert ASCII string to int64_t number
+ *    XXX: the parameter of (inp) must can't be a 
+ *		character constant, the function will 
+ *		change it through (inp[len-1] = '\0');
  */
 int64_t parse_size(char *inp) {
   char *tp;
@@ -210,7 +210,7 @@ int64_t parse_size(char *inp) {
 
   val = strtod(inp, &tp);
 
-  if (val <= 0 || tp != '\0') fatal(errstr);
+  if (val <= 0 || *tp != '\0') fatal(errstr);
 
   return (int64_t) (mult*val);
 }
