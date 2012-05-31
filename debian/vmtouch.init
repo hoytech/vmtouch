@@ -1,0 +1,69 @@
+#! /bin/sh
+### BEGIN INIT INFO
+# Provides:             vmtouch
+# Required-Start:       $local_fs $remote_fs
+# Required-Stop:        $local_fs $remote_fs
+# Default-Start:        2 3 4 5
+# Default-Stop:         0 1 6
+# Short-Description:    Start vmtouch daemon
+# Description:          Start vmtouch, the Virtual Memory Toucher
+### END INIT INFO
+
+PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
+DAEMON=/usr/sbin/vmtouch
+NAME=vmtouch
+DESC=vmtouch
+
+test -x $DAEMON || exit 0
+
+# Override these default values in /etc/default/vmtouch
+ENABLE_VMTOUCH=no
+VMTOUCH_USER_GROUP=nobody:nogroup
+VMTOUCH_FILES="/nonexistent"
+VMTOUCH_OPTIONS="-d -l -m 1G"
+[ -r /etc/default/$NAME ] && . /etc/default/$NAME
+
+. /lib/lsb/init-functions
+
+do_start()
+{
+	if [ $ENABLE_VMTOUCH = yes ]; then
+		start-stop-daemon --start --quiet --chuid $VMTOUCH_USER_GROUP --exec $DAEMON -- $VMTOUCH_OPTIONS $VMTOUCH_FILES
+		echo "$NAME."
+	else
+		echo "$NAME disabled in /etc/default/vmtouch"
+	fi
+}
+
+do_stop()
+{
+	start-stop-daemon --stop --quiet --exec $DAEMON
+}
+
+case "$1" in
+	start)
+		echo -n "Starting: "
+		do_start
+		;;
+	stop)
+		echo -n "Stopping: "
+		do_stop
+		echo "$NAME."
+		;;
+	restart|force-reload)
+		echo -n "Restarting: "
+		do_stop
+		sleep 1
+		do_start
+		;;
+	status)
+		status_of_proc $DAEMON $NAME
+		;;
+	*)
+		N=/etc/init.d/$NAME
+		echo "Usage: $N {start|stop|restart|force-reload|status}" >&2
+		exit 1
+		;;
+esac
+
+exit 0

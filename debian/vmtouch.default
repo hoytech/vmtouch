@@ -1,0 +1,11 @@
+# Change to yes to enable running vmtouch as a daemon
+ENABLE_VMTOUCH=no
+
+# User and group to run as
+VMTOUCH_USER_GROUP=nobody:nogroup
+
+# Whitespace separated list of files and directories for vmtouch to operate on
+VMTOUCH_FILES="/nonexistent"
+
+# Options to pass to vmtouch itself. See vmtouch(8).
+VMTOUCH_OPTIONS="-d -l -m 1G"
