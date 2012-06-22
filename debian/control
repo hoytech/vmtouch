@@ -9,7 +9,7 @@ Vcs-Git: git://github.com/hoytech/vmtouch.git
 Vcs-Browser: https://github.com/hoytech/vmtouch
 
 Package: vmtouch
-Architecture: all
+Architecture: any
 Depends: ${misc:Depends}, ${shlibs:Depends}, ${perl:Depends}
 Description: Portable file system cache diagnostics and control
  vmtouch is a tool for learning about and controlling the file system cache of
@@ -18,6 +18,6 @@ Description: Portable file system cache diagnostics and control
 Package: vmtouch-dbg
 Section: debug
 Priority: extra
-Architecture: all
+Architecture: any
 Depends: vmtouch (= ${binary:Version}), ${misc:Depends}
 Description: Debug symbols for vmtouch
