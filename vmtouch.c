@@ -10,7 +10,7 @@ Compilation:
 
 ************************************************************************
 
-Copyright (c) 2009 Doug Hoyte. All rights reserved.
+Copyright (c) 2009,2012 Doug Hoyte and contributors. All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions
@@ -33,30 +33,6 @@ DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
 THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
 THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-
-************************************************************************
-
-CHANGES:
-
-0.7.3
-  * Solaris support for page eviction
-
-0.7.2
-  * Portability fixes
-
-0.7.1
-  * First public release
-
-************************************************************************
-
-TODO:
-
-* -p "page mode" for touching, evicting, or locking just a range of pages in
-  a file... same format as nmap -p. 4k-50k, 1.5G-2G, -5M, -
-
-* Continually call mincore() every time a residency chart is drawn
-
-* In daemon mode, make fatal errors go to syslog.
 
 ***********************************************************************/
 
@@ -327,9 +303,6 @@ void vmtouch_file(char *path) {
   int64_t pages_in_file;
   int i;
   int res;
-#if defined(__hpux)
-  char *mincore_array;
-#endif
 
   res = o_followsymlinks ? stat(path, &sb) : lstat(path, &sb);
 
@@ -386,21 +359,17 @@ void vmtouch_file(char *path) {
 #if defined(__linux__) || defined(__hpux)
     if (posix_fadvise(fd, 0, len_of_file, POSIX_FADV_DONTNEED))
       warning("unable to posix_fadvise file %s (%s)", path, strerror(errno));
-#elif defined(__FreeBSD__) || defined(__sun__)
+#elif defined(__FreeBSD__) || defined(__sun__) || defined(__APPLE__)
     if (msync(mem, len_of_file, MS_INVALIDATE))
       warning("unable to msync invalidate file %s (%s)", path, strerror(errno));
 #else
     fatal("cache eviction not (yet?) supported on this platform");
 #endif
   } else {
-#if defined(__hpux)
-    if ((mincore_array=malloc(pages_in_file+1))==NULL) 
-      fatal("Could not allocate memory for mincore_array.");
-#else
-    char mincore_array[pages_in_file];
-#endif
     int64_t pages_in_core=0;
     double last_chart_print_time=0.0, temp_time;
+    char *mincore_array = malloc(pages_in_file);
+    if (mincore_array == NULL) fatal("Failed to allocate memory for mincore array (%s)", strerror(errno));
 
     // 3rd arg to mincore is char* on BSD and unsigned char* on linux
     if (mincore(mem, len_of_file, (void*)mincore_array)) fatal("mincore %s (%s)", path, strerror(errno));
@@ -437,6 +406,8 @@ void vmtouch_file(char *path) {
       print_page_residency_chart(stdout, mincore_array, pages_in_file);
       printf("\n");
     }
+
+    free(mincore_array);
   }
 
   if (o_lock) {
@@ -448,9 +419,6 @@ void vmtouch_file(char *path) {
     if (munmap(mem, len_of_file)) warning("unable to munmap file %s (%s)", path, strerror(errno));
     close(fd);
   }
-#if defined(__hpux)
-  free(mincore_array);
-#endif
 }
 
 
@@ -640,7 +608,7 @@ int main(int argc, char **argv) {
       printf("  Resident Pages: %" PRId64 "/%" PRId64 "  ", total_pages_in_core, total_pages);
       printf("%s/", pretty_print_size(total_pages_in_core*pagesize));
       printf("%s  ", pretty_print_size(total_pages*pagesize));
-      printf("%.3g%%\n", 100.0*total_pages_in_core/total_pages);
+      printf(total_pages ? "%.3g%%\n" : "\n", 100.0*total_pages_in_core/total_pages);
     }
     printf("         Elapsed: %.5g seconds\n", (end_time.tv_sec - start_time.tv_sec) + (double)(end_time.tv_usec - start_time.tv_usec)/1000000.0);
   }

@@ -1,0 +1,19 @@
+vmtouch - the Virtual Memory Toucher
+
+Portable file system cache diagnostics and control
+
+
+vmtouch is a tool for learning about and controlling
+the file system cache of unix and unix-like systems.
+It is BSD licensed so you can basically do whatever
+you want with it.
+
+
+Compilation:
+
+$ gcc -Wall -O3 -o vmtouch vmtouch.c
+
+
+Installation:
+
+$ sudo cp vmtouch /usr/local/bin/
