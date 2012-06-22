@@ -66,10 +66,12 @@ TODO:
 #define CHART_UPDATE_INTERVAL 0.1
 #define MAX_CRAWL_DEPTH 1024
 
-
-#ifdef __linux__
-// Make sure off_t is 64 bits on linux
+#if defined(__linux__) || (defined(__hpux) && !defined(__LP64__))
+// Make sure off_t is 64 bits on linux and when creating 32bit programs
+// on HP-UX.
 #define _FILE_OFFSET_BITS 64
+#endif
+#ifdef __linux__
 // Required for posix_fadvise() on some linux systems
 #define _XOPEN_SOURCE 600
 // Required for mincore() on some linux systems
@@ -325,6 +327,9 @@ void vmtouch_file(char *path) {
   int64_t pages_in_file;
   int i;
   int res;
+#if defined(__hpux)
+  char *mincore_array;
+#endif
 
   res = o_followsymlinks ? stat(path, &sb) : lstat(path, &sb);
 
@@ -378,7 +383,7 @@ void vmtouch_file(char *path) {
   if (o_evict) {
     if (o_verbose) printf("Evicting %s\n", path);
 
-#if defined(__linux__)
+#if defined(__linux__) || defined(__hpux)
     if (posix_fadvise(fd, 0, len_of_file, POSIX_FADV_DONTNEED))
       warning("unable to posix_fadvise file %s (%s)", path, strerror(errno));
 #elif defined(__FreeBSD__) || defined(__sun__)
@@ -388,7 +393,12 @@ void vmtouch_file(char *path) {
     fatal("cache eviction not (yet?) supported on this platform");
 #endif
   } else {
+#if defined(__hpux)
+    if ((mincore_array=malloc(pages_in_file+1))==NULL) 
+      fatal("Could not allocate memory for mincore_array.");
+#else
     char mincore_array[pages_in_file];
+#endif
     int64_t pages_in_core=0;
     double last_chart_print_time=0.0, temp_time;
 
@@ -438,6 +448,9 @@ void vmtouch_file(char *path) {
     if (munmap(mem, len_of_file)) warning("unable to munmap file %s (%s)", path, strerror(errno));
     close(fd);
   }
+#if defined(__hpux)
+  free(mincore_array);
+#endif
 }
 
 
