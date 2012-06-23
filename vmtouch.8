@@ -164,7 +164,7 @@ FreeBSD 4.X
 FreeBSD 7.X
 Solaris 10
 OS X 10.x
-HP-UX 11.31+
+HP-UX 11.31+patches (see below)
 .fi
 
 .TP
@@ -177,6 +177,10 @@ OpenBSD 4.3
 
 We would like to support as many systems as possible so please send
 us any success reports, failure reports or patches. Thanks!
+
+.SH SYSTEM NOTES
+
+Shane Seymour did the HP-UX port and says that either 32-bit or 64-bit binaries can be compiled (just use +DD64 for 64-bit). However, mincore(2) was added to HP-UX 11.31 via patches and at least the following patches need to be installed: PHKL_38651, PHKL_38708, PHKL_38686, PHKL_38688, and PHCO_38658 (or patches that supersede those ones).
 
 .SH SEE ALSO
 Not all the following manual pages may exist in every unix
