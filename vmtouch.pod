@@ -81,7 +81,7 @@ All vmtouch features have been confirmed to work on the following systems:
 
 =over
 
-=item Linux 2.6
+=item Linux 2.6+
 
 =item FreeBSD 4.X
 
