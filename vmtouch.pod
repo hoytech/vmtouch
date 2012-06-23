@@ -1,0 +1,122 @@
+=pod
+
+=head1 NAME
+
+vmtouch - the Virtual Memory Toucher
+
+=head1 SYNOPSIS
+
+    vmtouch [OPTIONS] ... FILES OR DIRECTORIES ...
+
+=head1 DESCRIPTION
+
+Portable file system cache diagnostics and control.
+
+vmtouch opens every file provided on the command line and maps it into virtual memory with C<mmap(2)>. The mappings are opened read-only. It recursively crawls any directories and does the same to all files it finds within them.
+
+With no options, vmtouch will not read from (touch) any memory pages.  It will only use C<mincore(2)> to determine how many pages of each file are actually resident in memory. Before exiting, it will print a summary of the total pages encountered and how many were resident.
+
+=over
+
+=item -t
+
+Touch virtual memory pages. Reads a byte from each page of the file. If the page is not resident in memory, a page fault will be generated and the page will be read from disk into the file system's memory cache.
+
+Note: Although each page is guaranteed to have been brought into memory, the page might be evicted from memory by the time the vmtouch command completes.
+
+=item -e
+
+Evict the mapped pages from the file system cache. They will need to be read in from disk the next time they are accessed. This is the inverse of C<-t>.
+
+Note: Even if the eviction is successful, pages may be paged back into memory by the time the vmtouch command completes.
+
+Note: This option is not portable to all systems. See L<PORTABILITY> below.
+
+=item -l
+
+Lock pages into physical memory. This option works the same as C<-t> except it calls C<mlock(2)> on all the memory mappings and doesn't close the descriptors when finished. At the end of the crawl, if successful, vmtouch will block indefinitely. The files will be locked in physical memory until the vmtouch process is killed.
+
+Note: While the vmtouch process is holding memory locks, any processes that access the locked pages will not cause non-resident page faults or address-translation faults although they may still cause TLB misses.
+
+Note: Because vmtouch holds file descriptors open it may reach the C<RLIMIT_NOFILE> process file descriptor limit. In this case it will try to increase the descriptor limit which will only work if the process is run with root privileges. Similarly, root privileges are required to exceed the C<RLIMIT_MEMLOCK> limit. Even with root privileges, C<-l> is limited by both the system file descriptor limit and the system limit on "wired memory".
+
+=item -L
+
+This option is the same as C<-l> except that it uses C<mlockall(2)> at the end of the crawl rather than individually C<mlock(2)>ing each file. Because of this, other unrelated pages belonging to the vmtouch process will also be locked in memory.
+
+=item -d
+
+Daemon mode. After performing the crawl, disassociate from the terminal and run in the background as a daemon. This option can only be used with the C<-l> or C<-L> locking modes.
+
+=item -m <max file size>
+
+Maximum file size to map into virtual memory. Files that are larger than this will be skipped. Examples: 4096, 4k, 100M, 1.5G. The default is 500M.
+
+=item -f
+
+Follow symbolic links. With this option, vmtouch will descend into symbolic links that point to directories and will touch regular files pointed to by symbolic links. Symbolic link loops are detected and issue warnings.
+
+=item -v
+
+Verbose mode. While crawling, print out every file being processed along with its total number of pages and the number of its pages that are currently resident in memory to standard output.
+
+=item -q
+
+Quiet mode. Suppress the end of crawl summary and all warnings that are normally printed to standard error. On success print nothing. Fatal errors print a single error message line to standard error.
+
+=back
+
+
+=head1 PORTABILITY
+
+The page residency summaries depend on C<mincore(2)> which first appeared in 4.4BSD but is not present on all unix systems.
+
+The C<-l> and C<-L> locking options depends on C<mlock(2)> or C<mlockall(2)>, both of which are specified by POSIX.1b-1993, Real-Time Extensions.
+
+The C<-e> page eviction option is the least portable. On Linux it uses C<posix_fadvise(2)> with C<POSIX_FADV_DONTNEED> advice to inform the kernel that the file should be evicted from the file system cache. C<posix_fadvise(2)> is specified by POSIX.1-2003 TC1. On FreeBSD, the pages are invalidated with C<msync(2)>'s C<MS_INVALIDATE> flag. C<msync(2)> is specified by POSIX.1b-1993, Real-Time Extensions, although this call is not required to remove pages from the file system cache. Some systems like OpenBSD 4.3 don't have C<posix_fadvise(2)>, don't evict the pages on an C<msync(2)>/C<MS_INVALIDATE>, and don't evict the pages with C<madvise(2)>/C<MADV_DONTNEED> so C<-e> isn't supported on those systems yet. Using C<-e> on systems that don't yet support it is a fatal error.
+
+=head1 SUPPORTED SYSTEMS
+
+All vmtouch features have been confirmed to work on the following systems:
+
+=over
+
+=item Linux 2.6
+
+=item FreeBSD 4.X
+
+=item FreeBSD 7.X
+
+=item Solaris 10
+
+=item OS X 10.x
+
+=item HP-UX 11.31+patches (see below)
+
+=back
+
+Systems that support everything except eviction:
+
+=over
+
+=item OpenBSD 4.3
+
+=back
+
+We would like to support as many systems as possible so please send us any success reports, failure reports or patches. Thanks!
+
+=head1 SYSTEM NOTES
+
+Shane Seymour did the HP-UX port and says that either 32-bit or 64-bit binaries can be compiled (just use C<+DD64> for 64-bit). However, C<mincore(2)> was added to HP-UX 11.31 via patches and at least the following patches need to be installed: PHKL_38651, PHKL_38708, PHKL_38686, PHKL_38688, and PHCO_38658 (or patches that supersede those ones).
+
+=head1 SEE ALSO
+
+Not all the following manual pages may exist in every unix dialect to which vmtouch has been ported.
+
+vmstat(8), touch(1), mmap(2), mincore(2), mlock(2), mlockall(2), msync(2), madvise(2), posix_fadvise(2)
+
+=head1 AUTHOR
+
+Written by Doug Hoyte <doug@hcsw.org>
+
+=cut
