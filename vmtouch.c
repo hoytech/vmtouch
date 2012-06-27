@@ -541,6 +541,7 @@ int main(int argc, char **argv) {
         printf("%d %s %ld\n", sizeof(void*) == 4 ? 32 : 64,
                               ((char*)&o_touch)[0] ? "little" : "big",
                               pagesize);
+        fprintf(stderr, "-p is DEPRECATED. This switch will do something else in a future vmtouch release.\n");
         exit(0);
       case 'm': {
         int64_t val = parse_size(optarg);
