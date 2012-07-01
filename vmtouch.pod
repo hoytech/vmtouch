@@ -103,7 +103,7 @@ Systems that support everything except eviction:
 
 =back
 
-Many CPUs have been tested:
+CPUs that have been tested:
 
 =over
 

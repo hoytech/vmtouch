@@ -1,0 +1,270 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" 
+	"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+<head>
+<title>S5: An Introduction</title>
+<!-- metadata -->
+<meta name="generator" content="S5" />
+<meta name="version" content="S5 1.1" />
+<meta name="presdate" content="20050728" />
+<meta name="author" content="Eric A. Meyer" />
+<meta name="company" content="Complex Spiral Consulting" />
+<!-- configuration parameters -->
+<meta name="defaultView" content="slideshow" />
+<meta name="controlVis" content="hidden" />
+<!-- style sheet links -->
+<link rel="stylesheet" href="ui/default/slides.css" type="text/css" media="projection" id="slideProj" />
+<link rel="stylesheet" href="ui/default/outline.css" type="text/css" media="screen" id="outlineStyle" />
+<link rel="stylesheet" href="ui/default/print.css" type="text/css" media="print" id="slidePrint" />
+<link rel="stylesheet" href="ui/default/opera.css" type="text/css" media="projection" id="operaFix" />
+<!-- S5 JS -->
+<script src="ui/default/slides.js" type="text/javascript"></script>
+</head>
+<body>
+
+<div class="layout">
+<div id="controls"><!-- DO NOT EDIT --></div>
+<div id="currentSlide"><!-- DO NOT EDIT --></div>
+<div id="header"></div>
+<div id="footer">
+<h1>vmtouch</h1>
+<h2>Intro to virtual memory</h2>
+</div>
+
+</div>
+
+
+<div class="presentation">
+
+<div class="slide">
+  <center>
+  <h1>vmtouch</h1>
+  <h3>Intro to virtual memory</h3>
+  <h3>Doug Hoyte</h3>
+  </center>
+</div>
+
+
+<div class="slide">
+  <h1>Black-box view of virtual memory</h1>
+  <center><img src="vm-overview.png"></center>
+</div>
+
+
+<div class="slide">
+  <h1>Pages</h1>
+  <ul>
+    <li>Unix divides the address space of each process into pages</li>
+
+    <li>
+      At any given time, a page may be:
+      <ul>
+        <li>Resident in physical memory</li>
+        <li>Swapped out to disk/stored in a file to make room for other pages</li>
+      </ul>
+    </li>
+
+    <li>Page addresses aren't physical addresses: physical addresses are called frames</li>
+  </ul>
+</div>
+
+
+<div class="slide">
+  <h1>Filesystem Cache</h1>
+  <ul>
+    <li>In-memory cache of the pages of files</li>
+    <li>Extremely important optimisation</li>
+    <li>Cache is shared by all processes on system</li>
+    <li>A warmed up unix system should have very little "free" memory &mdash; it should cache as many filesystem pages as possible</li>
+    <li>Directories, file meta data, etc are cached in related memory called the vnode pool</li>
+</div>
+
+
+
+<div class="slide">
+  <h1>Paging System</h1>
+  <center><img src="paging-system.png"></center>
+</div>
+
+
+
+<div class="slide">
+  <h1>How big are pages?</h1>
+  <ul>
+    <li>Depends on hardware</li>
+    <li>X86 and X86-64 base pages are 4K</li>
+    <li>SPARC base pages are 8K</li>
+    <li>ARM: usually 4K but can be higher or (v4/5) lower</li>
+    <li>
+      4K or 8K has been typical since the 60s
+      <ul><li>PDP-11 had 8K pages</li></ul>
+    </li>
+    <li>Most CPUs have "huge pages"</li>
+  </ul>
+</div>
+
+
+
+<div class="slide">
+  <h1>Translation Lookaside Buffer</h1>
+  <ul>
+    <li>Component of the MMU hardware</li>
+    <li>Super-fast cache of "virtual" page addresses to "real" frame addresses</li>
+    <li>Essential for efficient virtual memory</li>
+    <li>Usually separate TLBs for instructions and data</li>
+    <li>TLBs are small</li>
+  </ul>
+</div>
+
+
+
+<div class="slide">
+  <h1>TLB reach = page size * TLB capacity</h1>
+  <ul>
+    <li>This is the maximum size working set you can have without causing TLB misses</li>
+    <li>
+      Intel Xeon Core:
+      <ul>
+        <li>
+          Data TLB 4K pages: 256<br>
+          TLB reach = 4K * 256 = 1M
+        </li>
+      </ul>
+      <ul> 
+        <li>
+          Data TLB 4M pages: 8<br>
+          TLB reach = 4M * 256 = 32M
+        </li>
+      </ul>
+    </li>
+  </ul>
+</div>
+
+
+
+<div class="slide">
+  <h1>Understanding a memory dereference</h1>
+  <center><img src="memory-dereferencing.png"></center>
+</div>
+
+
+
+<div class="slide">
+  <h1>CPU support for "Huge Pages"</h1>
+  <ul>
+    <li>
+      X86 Pentium Pro and later support three page sizes<br>
+      <b>4K, 2M, 4M</b>
+    </li>
+    <li>
+      SPARC<br>
+      <b>8K, 64K, 512K, 4M, 32M, 256M</b>
+    </li>
+    <li>
+      X86-64<br>
+      <b>4K, 2M, 4M, 1G</b>
+    </li>
+  </ul>
+</div>
+
+
+
+<div class="slide">
+  <h1>OS Support for Huge Pages</h1>
+  <ul>
+    <li>Solaris is possibly the best</li>
+    <li>
+      Multiple Page Size Support since Solaris 9
+      <ul><li>Transparent to applications</li></ul>
+    </li>
+    <li>
+      Great tools for analyzing MMU performance
+      <ul>
+        <li>ppgse</li>
+        <li>pmap</li>
+        <li>trapstat</li>
+      </ul>
+    </li>
+</div>
+
+
+
+<div class="slide">
+  <h1></h1>
+<pre>
+$ uname -a
+SunOS neptune 5.10 Generic_127112-11 i86pc i386 i86pc Solaris
+$ pagesize -a
+4096
+2097152
+
+
+$ uname -a                                                    
+SunOS pluto 5.10 Generic_138888-03 sun4v sparc SUNW Solaris
+$ pagesize -a
+8192
+65536
+4194304
+268435456
+</pre>
+</div>
+
+
+<div class="slide">
+  <h1>OS Support for Huge Pages</h1>
+  <ul>
+    <li>FreeBSD: Transparent huge page support on x86 and x86-64 since FreeBSD 7.2</li>
+    <li>
+      Linux: HUGETLBFS
+      <ul><li>But see RFC: Transparent Hugepage Support message to linux kernel  list, Oct 26th, 2009</li></ul>
+    </li>
+    <li>Win32: No support for huge pages</li>
+  </ul>
+</div>
+
+
+<div class="slide">
+  <h1>Huge Pages in Kernel</h1>
+  <ul>
+    <li>Kernel is a special case</li>
+    <li>Linux, BSD, Solaris all use huge pages in the kernel when mapping the kernel binary itself</li>
+  </ul>
+</div>
+
+
+<div class="slide">
+  <h1>System calls for managing the page cache</h1>
+<center>
+  <table cellspacing=5 cellpadding=5>
+    <tr><td>mmap(2)</td><td>posix_fadvise(2)</td>
+    <tr><td>mincore(2)</td><td>posix_madvise(2)</td></tr>
+    <tr><td>msync(2)</td><td>posix_fallocate(2)</td></tr>
+    <tr><td>madvise(2)</td><td>readahead(2)</td></tr>
+    <tr><td>mprotect(2)</td><td>memcntl(2)</td></tr>
+    <tr><td>mlock(2)</td><td>meminfo(2)</td></tr>
+  </table>
+  <h3>But where are the command line utilities?</h3>
+</center>
+</div>
+
+
+<div class="slide">
+  <h1>Demo</h1>
+  <center><h3>Let's touch some memory</h3></center>
+</div>
+
+
+<div class="slide">
+  <h1>vmtouch</h1>
+  <center>
+  <h3>http://hoytech.com/vmtouch/</h3>
+  <h3>Doug Hoyte</h3>
+  </center>
+</div>
+
+</div>
+
+</body>
+</html>
