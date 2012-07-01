@@ -103,6 +103,20 @@ Systems that support everything except eviction:
 
 =back
 
+Many CPUs have been tested:
+
+=over
+
+=item x86
+
+=item amd64 (x86-64)
+
+=item SPARC
+
+=item ARMv7
+
+=back
+
 We would like to support as many systems as possible so please send us any success reports, failure reports or patches. Thanks!
 
 =head1 SYSTEM NOTES
