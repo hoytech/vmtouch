@@ -67,6 +67,7 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sys/time.h>
 #include <sys/resource.h>
 #include <sys/mman.h>
+#include <sys/wait.h>
 #include <limits.h>
 #include <inttypes.h>
 #include <dirent.h>
@@ -97,9 +98,22 @@ int o_lockall=0;
 int o_daemon=0;
 int o_followsymlinks=0;
 size_t o_max_file_size=500*1024*1024;
+int o_wait=0;
 
+int stdout_pipe[2];
+int stderr_pipe[2];
+int exit_pipe[2];
 
+int daemon_pid;
 
+void send_exit_signal(char code) {
+  if (daemon_pid == 0 && o_wait) {
+    if (fflush(stdout) || fflush(stderr))
+      fprintf(stderr, "vmtouch: FATAL: fflush: %s", strerror(errno));
+    if (write(exit_pipe[1], &code, 1))
+      fprintf(stderr, "vmtouch: FATAL: write: %s", strerror(errno));
+  }
+}
 
 void usage() {
   printf("\n");
@@ -113,6 +127,7 @@ void usage() {
   printf("  -d daemon mode\n");
   printf("  -m <size> max file size to touch\n");
   printf("  -f follow symbolic links\n");
+  printf("  -w wait until all pages are locked (only useful together with -d)\n");
   printf("  -v verbose\n");
   printf("  -q quiet\n");
   exit(1);
@@ -127,6 +142,7 @@ static void fatal(const char *fmt, ...) {
   va_end(ap);
 
   fprintf(stderr, "vmtouch: FATAL: %s\n", buf);
+  send_exit_signal(1);
   exit(1);
 }
 
@@ -141,22 +157,76 @@ static void warning(const char *fmt, ...) {
   if (!o_quiet) fprintf(stderr, "vmtouch: WARNING: %s\n", buf);
 }
 
+void redirect_pipe_data(FILE *dest, int src) {
+  char buf[4096];
+  int r = read(src, buf, sizeof(buf));
+  if (r < 0)
+    fatal("read: %s", strerror(errno));
+  if (fwrite(buf, r, 1, dest) < 0)
+    fatal("fwrite: %s", strerror(errno));
+}
+
+int wait_for_child() {
+  int exit_read = 0;
+  char exit_value = 0;
+  int max_fd;
+  int wait_status;
+
+  max_fd = stdout_pipe[0];
+  if (max_fd < stderr_pipe[0]) max_fd = stderr_pipe[0];
+  if (max_fd < exit_pipe[0]) max_fd = exit_pipe[0];
+  while (1) {
+    struct timeval tv;
+    fd_set rfds;
+    FD_ZERO(&rfds);
+    tv.tv_sec = 1;
+    tv.tv_usec = 0;
+    FD_SET(stdout_pipe[0], &rfds);
+    FD_SET(stderr_pipe[0], &rfds);
+    FD_SET(exit_pipe[0], &rfds);
+    if (select(max_fd + 1, &rfds, NULL, NULL, &tv) < 0)
+      fatal("select: %s", strerror(errno));
+
+    if (waitpid(daemon_pid, &wait_status, WNOHANG) > 0)
+      fatal("daemon shut down unexpectedly");
+
+    if (FD_ISSET(stdout_pipe[0], &rfds))
+      redirect_pipe_data(stdout, stdout_pipe[0]);
+    if (FD_ISSET(stderr_pipe[0], &rfds))
+      redirect_pipe_data(stderr, stderr_pipe[0]);
+    if (FD_ISSET(exit_pipe[0], &rfds))
+      break;
+  }
+  exit_read = read(exit_pipe[0], &exit_value, 1);
+  if (exit_read < 0)
+    fatal("read: %s", strerror(errno));
+  return exit_value;
+}
 
 void go_daemon() {
-  int rv;
-
-  rv = fork();
-  if (rv == -1)
+  daemon_pid = fork();
+  if (daemon_pid == -1)
     fatal("fork: %s", strerror(errno));
-  if (rv) exit(0);
+  if (daemon_pid) {
+    if (o_wait)
+      exit(wait_for_child());
+    exit(0);
+  }
+
+  if (o_wait) {
+    if (dup2(stdout_pipe[1], STDOUT_FILENO) < 0 || dup2(stderr_pipe[1], STDERR_FILENO) < 0)
+      fatal("dup2: %s", strerror(errno));
+  }
 
   if (setsid() == -1)
     fatal("setsid: %s", strerror(errno));
 
-  if (freopen("/dev/null", "r", stdin) == NULL ||
-      freopen("/dev/null", "w", stdout) == NULL ||
-      freopen("/dev/null", "w", stderr) == NULL)
+  if (freopen("/dev/null", "r", stdin) == NULL)
     fatal("freopen: %s", strerror(errno));
+  if (!o_wait)
+    if (freopen("/dev/null", "w", stderr) == NULL ||
+        freopen("/dev/null", "r", stdin) == NULL)
+     fatal("freopen: %s", strerror(errno));
 }
 
 
@@ -520,9 +590,12 @@ int main(int argc, char **argv) {
   struct timeval start_time;
   struct timeval end_time;
 
+  if (pipe(stdout_pipe) || pipe(stderr_pipe) || pipe(exit_pipe))
+    fatal("pipe: %s", strerror(errno));
+
   pagesize = sysconf(_SC_PAGESIZE);
 
-  while((ch = getopt(argc, argv,"tevqlLdfpb:m:")) != -1) {
+  while((ch = getopt(argc, argv,"tevqlLdfpb:m:w")) != -1) {
     switch(ch) {
       case '?': usage(); break;
       case 't': o_touch = 1; break;
@@ -533,8 +606,7 @@ int main(int argc, char **argv) {
                 o_touch = 1; break;
       case 'L': o_lockall = 1;
                 o_touch = 1; break;
-      case 'd': o_daemon = 1;
-                o_quiet = 1; break;
+      case 'd': o_daemon = 1; break;
       case 'f': o_followsymlinks = 1; break;
       case 'p':
         o_touch = 1;
@@ -549,6 +621,7 @@ int main(int argc, char **argv) {
         if (val != (int64_t) o_max_file_size) fatal("value for -m too big to fit in a size_t");
         break;
       }
+      case 'w': o_wait = 1; break;
     }
   }
 
@@ -567,7 +640,13 @@ int main(int argc, char **argv) {
 
   if (o_daemon) {
     if (!(o_lock || o_lockall)) fatal("daemon mode must be combined with -l or -L");
+    if (!o_wait) {
+      o_quiet = 1;
+      o_verbose = 0;
+   }
   }
+
+  if (o_wait && !o_daemon) fatal("wait mode must be combined with -d");
 
   if (o_quiet && o_verbose) fatal("invalid option combination: -q and -v");
 
@@ -593,6 +672,7 @@ int main(int argc, char **argv) {
 
     if (!o_quiet) printf("LOCKED %" PRId64 " pages (%s)\n", total_pages, pretty_print_size(total_pages*pagesize));
 
+    send_exit_signal(0);
     select(0, NULL, NULL, NULL, NULL);
     exit(0);
   }
