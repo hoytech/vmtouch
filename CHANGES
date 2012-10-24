@@ -1,3 +1,7 @@
+upcoming
+  * Add option to wait for daemon mode to finish mlocking.
+    (Thanks Kristofer Karlsson)
+
 0.8.0    2012-12-04
   * Patch from Marc Brooker: avoid overflowing stack when
     allocating array for mincore() output
