@@ -74,6 +74,10 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <fcntl.h>
 
 
+// for g++ support
+#if !defined(PRId64)
+#define PRId64 "ld"
+#endif
 
 long pagesize;
 
