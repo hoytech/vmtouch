@@ -75,6 +75,10 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <fcntl.h>
 
 
+// for g++ support
+#if !defined(PRId64)
+#define PRId64 "ld"
+#endif
 
 long pagesize;
 
@@ -234,7 +238,7 @@ char *pretty_print_size(int64_t inp) {
 int64_t parse_size(char *inp) {
   char *tp;
   int len=strlen(inp);
-  char *errstr = "bad size. examples: 4096, 4k, 100M, 1.5G";
+  const char *errstr = "bad size. examples: 4096, 4k, 100M, 1.5G";
   char mult_char;
   int mult=1;
   double val;
@@ -343,7 +347,7 @@ void print_page_residency_chart(FILE *out, char *mincore_array, int64_t pages_in
 
 
 
-void vmtouch_file(char *path) {
+void vmtouch_file(const char *path) {
   int fd;
   void *mem;
   struct stat sb;
@@ -366,7 +370,7 @@ void vmtouch_file(char *path) {
 
   if (sb.st_size == 0) return;
 
-  if (sb.st_size > o_max_file_size) {
+  if ((size_t)sb.st_size > o_max_file_size) {
     warning("file %s too large, skipping", path);
     return;
   }
@@ -416,11 +420,17 @@ void vmtouch_file(char *path) {
   } else {
     int64_t pages_in_core=0;
     double last_chart_print_time=0.0, temp_time;
-    char *mincore_array = malloc(pages_in_file);
+    char *mincore_array = (char*)malloc(pages_in_file);
     if (mincore_array == NULL) fatal("Failed to allocate memory for mincore array (%s)", strerror(errno));
 
     // 3rd arg to mincore is char* on BSD and unsigned char* on linux
-    if (mincore(mem, len_of_file, (void*)mincore_array)) fatal("mincore %s (%s)", path, strerror(errno));
+#if defined(__linux__)
+    if (mincore(mem, len_of_file, (unsigned char*)mincore_array)) {
+#else
+    if (mincore(mem, len_of_file, mincore_array)) {
+#endif
+        fatal("mincore %s (%s)", path, strerror(errno));
+    }
     for (i=0; i<pages_in_file; i++) {
       if (is_mincore_page_resident(mincore_array[i])) {
         pages_in_core++;
@@ -529,7 +539,7 @@ void vmtouch_crawl(char *path) {
       while((de = readdir(dirp)) != NULL) {
         if (strcmp(de->d_name, ".") == 0 || strcmp(de->d_name, "..") == 0) continue;
 
-        if (snprintf(npath, sizeof(npath), "%s/%s", path, de->d_name) >= sizeof(npath)) {
+        if ((size_t)snprintf(npath, sizeof(npath), "%s/%s", path, de->d_name) >= sizeof(npath)) {
           warning("path too long %s", path);
           goto bail;
         }
