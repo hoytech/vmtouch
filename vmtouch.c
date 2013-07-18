@@ -97,7 +97,7 @@ int o_lock=0;
 int o_lockall=0;
 int o_daemon=0;
 int o_followsymlinks=0;
-size_t o_max_file_size=500*1024*1024;
+int64_t o_max_file_size=50UL*1024UL*1024UL*1024UL;
 int o_wait=0;
 
 int exit_pipe[2];
@@ -594,9 +594,7 @@ int main(int argc, char **argv) {
         fprintf(stderr, "-p is DEPRECATED. This switch will do something else in a future vmtouch release.\n");
         exit(0);
       case 'm': {
-        int64_t val = parse_size(optarg);
-        o_max_file_size = (size_t) val;
-        if (val != (int64_t) o_max_file_size) fatal("value for -m too big to fit in a size_t");
+        o_max_file_size = parse_size(optarg);
         break;
       }
       case 'w': o_wait = 1; break;
