@@ -74,7 +74,15 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <errno.h>
 #include <fcntl.h>
 
-
+/*
+ * To find out if the stat results from a single file correspond to a file we
+ * have already seen, we need to compare both the device and the inode
+ */
+struct dev_and_inode
+{
+    dev_t dev;
+    ino_t ino;
+};
 
 long pagesize;
 
@@ -88,6 +96,9 @@ unsigned int junk_counter; // just to prevent any compiler optimizations
 int curr_crawl_depth=0;
 ino_t crawl_inodes[MAX_CRAWL_DEPTH];
 
+// remember all inodes (for files with inode count > 1) to find duplicates
+void *seen_inodes = NULL;
+
 
 int o_touch=0;
 int o_evict=0;
@@ -97,7 +108,9 @@ int o_lock=0;
 int o_lockall=0;
 int o_daemon=0;
 int o_followsymlinks=0;
-size_t o_max_file_size=500*1024*1024;
+int o_ignorehardlinkeduplictes=0;
+int o_raw=0;
+int64_t o_max_file_size=50UL*1024UL*1024UL*1024UL;
 int o_wait=0;
 
 int exit_pipe[2];
@@ -123,6 +136,8 @@ void usage() {
   printf("  -d daemon mode\n");
   printf("  -m <size> max file size to touch\n");
   printf("  -f follow symbolic links\n");
+  printf("  -h also count hardlinked copies\n");
+  printf("  -r show raw output ('RAW x' where x is the number of resident bytes)\n");
   printf("  -w wait until all pages are locked (only useful together with -d)\n");
   printf("  -v verbose\n");
   printf("  -q quiet\n");
@@ -470,10 +485,39 @@ void vmtouch_file(char *path) {
 }
 
 
+// compare device and inode information
+int compare_func(const void *p1, const void *p2)
+{
+  const struct dev_and_inode *kp1 = p1, *kp2 = p2;
+  int cmp1;
+  cmp1 = (kp1->ino > kp2->ino) - (kp1->ino < kp2->ino);
+  if (cmp1 != 0)
+    return cmp1;
+  return (kp1->dev > kp2->dev) - (kp1->dev < kp2->dev);
+}
 
+// add device and inode information to the tree of known inodes
+static inline void add_object (struct stat *st)
+{
+  struct dev_and_inode *newp = malloc (sizeof (struct dev_and_inode));
+  if (newp == NULL) {
+    return;
+  }
+  newp->dev = st->st_dev;
+  newp->ino = st->st_ino;
+  return tsearch(newp, &seen_inodes, compare_func) ? 0 : -1;
+}
 
-
-
+// return true only if the device and inode information has not been added before
+static inline int find_object(struct stat *st)
+{
+  struct dev_and_inode obj;
+  void *res;
+  obj.dev = st->st_dev;
+  obj.ino = st->st_ino;
+  res = (void *) tfind(&obj, &seen_inodes, compare_func);
+  return res != (void *) NULL;
+}
 
 void vmtouch_crawl(char *path) {
   struct stat sb;
@@ -483,6 +527,7 @@ void vmtouch_crawl(char *path) {
   int res;
   int tp_path_len = strlen(path);
   int i;
+  void *retval;
 
   if (path[tp_path_len-1] == '/') path[tp_path_len-1] = '\0'; // prevent ugly double slashes when printing path names
 
@@ -495,6 +540,21 @@ void vmtouch_crawl(char *path) {
     if (S_ISLNK(sb.st_mode)) {
       warning("not following symbolic link %s", path);
       return;
+    }
+
+    if (!o_ignorehardlinkeduplictes && sb.st_nlink > 1) {
+      /*
+       * For files with more than one link to it, ignore it if we already know
+       * inode.  Without this check files copied as hardlinks (cp -al) are
+       * counted twice (which may lead to a cache usage of more than 100% of
+       * RAM).
+       */
+      if (find_object(&sb)) {
+        // we already saw the device and inode referenced by this file
+        return;
+      } else {
+        add_object(&sb);
+      }
     }
 
     if (S_ISDIR(sb.st_mode)) {
@@ -573,7 +633,7 @@ int main(int argc, char **argv) {
 
   pagesize = sysconf(_SC_PAGESIZE);
 
-  while((ch = getopt(argc, argv,"tevqlLdfpb:m:w")) != -1) {
+  while((ch = getopt(argc, argv,"tevqlLdfhprb:m:w")) != -1) {
     switch(ch) {
       case '?': usage(); break;
       case 't': o_touch = 1; break;
@@ -586,6 +646,8 @@ int main(int argc, char **argv) {
                 o_touch = 1; break;
       case 'd': o_daemon = 1; break;
       case 'f': o_followsymlinks = 1; break;
+      case 'h': o_ignorehardlinkeduplictes = 1; break;
+      case 'r': o_raw = 1; break;
       case 'p':
         o_touch = 1;
         printf("%d %s %ld\n", sizeof(void*) == 4 ? 32 : 64,
@@ -594,9 +656,7 @@ int main(int argc, char **argv) {
         fprintf(stderr, "-p is DEPRECATED. This switch will do something else in a future vmtouch release.\n");
         exit(0);
       case 'm': {
-        int64_t val = parse_size(optarg);
-        o_max_file_size = (size_t) val;
-        if (val != (int64_t) o_max_file_size) fatal("value for -m too big to fit in a size_t");
+        o_max_file_size = parse_size(optarg);
         break;
       }
       case 'w': o_wait = 1; break;
@@ -640,6 +700,8 @@ int main(int argc, char **argv) {
 
   for (i=0; i<argc; i++) vmtouch_crawl(argv[i]);
 
+  tdestroy(seen_inodes, free);
+
   gettimeofday(&end_time, NULL);
 
   if (o_lock || o_lockall) {
@@ -659,19 +721,28 @@ int main(int argc, char **argv) {
 
   if (!o_quiet) {
     if (o_verbose) printf("\n");
-    printf("           Files: %" PRId64 "\n", total_files);
-    printf("     Directories: %" PRId64 "\n", total_dirs);
+    if (!o_raw) {
+      printf("           Files: %" PRId64 "\n", total_files);
+      printf("     Directories: %" PRId64 "\n", total_dirs);
+    }
     if (o_touch)
       printf("   Touched Pages: %" PRId64 " (%s)\n", total_pages, pretty_print_size(total_pages*pagesize));
     else if (o_evict)
       printf("   Evicted Pages: %" PRId64 " (%s)\n", total_pages, pretty_print_size(total_pages*pagesize));
     else {
-      printf("  Resident Pages: %" PRId64 "/%" PRId64 "  ", total_pages_in_core, total_pages);
-      printf("%s/", pretty_print_size(total_pages_in_core*pagesize));
-      printf("%s  ", pretty_print_size(total_pages*pagesize));
-      printf(total_pages ? "%.3g%%\n" : "\n", 100.0*total_pages_in_core/total_pages);
+      if (o_raw) {
+        printf("RAW %" PRId64, total_pages_in_core*pagesize);
+        printf("\n");
+      } else {
+        printf("  Resident Pages: %" PRId64 "/%" PRId64 "  ", total_pages_in_core, total_pages);
+        printf("%s/", pretty_print_size(total_pages_in_core*pagesize));
+        printf("%s  ", pretty_print_size(total_pages*pagesize));
+        printf(total_pages ? "%.3g%%\n" : "\n", 100.0*total_pages_in_core/total_pages);
+      }
     }
-    printf("         Elapsed: %.5g seconds\n", (end_time.tv_sec - start_time.tv_sec) + (double)(end_time.tv_usec - start_time.tv_usec)/1000000.0);
+    if (!o_raw) {
+      printf("         Elapsed: %.5g seconds\n", (end_time.tv_sec - start_time.tv_sec) + (double)(end_time.tv_usec - start_time.tv_usec)/1000000.0);
+    }
   }
 
   return 0;
