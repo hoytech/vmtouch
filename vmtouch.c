@@ -73,8 +73,17 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <dirent.h>
 #include <errno.h>
 #include <fcntl.h>
+#include <search.h>
 
-
+/*
+ * To find out if the stat results from a single file correspond to a file we
+ * have already seen, we need to compare both the device and the inode
+ */
+struct dev_and_inode
+{
+    dev_t dev;
+    ino_t ino;
+};
 
 long pagesize;
 
@@ -88,6 +97,9 @@ unsigned int junk_counter; // just to prevent any compiler optimizations
 int curr_crawl_depth=0;
 ino_t crawl_inodes[MAX_CRAWL_DEPTH];
 
+// remember all inodes (for files with inode count > 1) to find duplicates
+void *seen_inodes = NULL;
+
 
 int o_touch=0;
 int o_evict=0;
@@ -98,6 +110,7 @@ int o_lockall=0;
 int o_daemon=0;
 int o_followsymlinks=0;
 int o_raw=0;
+int o_ignorehardlinkeduplictes=0;
 size_t o_max_file_size=500*1024*1024;
 int o_wait=0;
 
@@ -125,6 +138,7 @@ void usage() {
   printf("  -m <size> max file size to touch\n");
   printf("  -f follow symbolic links\n");
   printf("  -r show raw output ('RAW x' where x is the number of resident bytes)\n");
+  printf("  -h also count hardlinked copies\n");
   printf("  -w wait until all pages are locked (only useful together with -d)\n");
   printf("  -v verbose\n");
   printf("  -q quiet\n");
@@ -472,10 +486,41 @@ void vmtouch_file(char *path) {
 }
 
 
+// compare device and inode information
+int compare_func(const void *p1, const void *p2)
+{
+  const struct dev_and_inode *kp1 = p1, *kp2 = p2;
+  int cmp1;
+  cmp1 = (kp1->ino > kp2->ino) - (kp1->ino < kp2->ino);
+  if (cmp1 != 0)
+    return cmp1;
+  return (kp1->dev > kp2->dev) - (kp1->dev < kp2->dev);
+}
 
+// add device and inode information to the tree of known inodes
+static inline void add_object (struct stat *st)
+{
+  struct dev_and_inode *newp = malloc (sizeof (struct dev_and_inode));
+  if (newp == NULL) {
+    fatal("malloc: out of memory");
+  }
+  newp->dev = st->st_dev;
+  newp->ino = st->st_ino;
+  if (tsearch(newp, &seen_inodes, compare_func) == NULL) {
+    fatal("tsearch: out of memory");
+  }
+}
 
-
-
+// return true only if the device and inode information has not been added before
+static inline int find_object(struct stat *st)
+{
+  struct dev_and_inode obj;
+  void *res;
+  obj.dev = st->st_dev;
+  obj.ino = st->st_ino;
+  res = (void *) tfind(&obj, &seen_inodes, compare_func);
+  return res != (void *) NULL;
+}
 
 void vmtouch_crawl(char *path) {
   struct stat sb;
@@ -497,6 +542,21 @@ void vmtouch_crawl(char *path) {
     if (S_ISLNK(sb.st_mode)) {
       warning("not following symbolic link %s", path);
       return;
+    }
+
+    if (!o_ignorehardlinkeduplictes && sb.st_nlink > 1) {
+      /*
+       * For files with more than one link to it, ignore it if we already know
+       * inode.  Without this check files copied as hardlinks (cp -al) are
+       * counted twice (which may lead to a cache usage of more than 100% of
+       * RAM).
+       */
+      if (find_object(&sb)) {
+        // we already saw the device and inode referenced by this file
+        return;
+      } else {
+        add_object(&sb);
+      }
     }
 
     if (S_ISDIR(sb.st_mode)) {
@@ -575,7 +635,7 @@ int main(int argc, char **argv) {
 
   pagesize = sysconf(_SC_PAGESIZE);
 
-  while((ch = getopt(argc, argv,"tevqlLdfrpb:m:w")) != -1) {
+  while((ch = getopt(argc, argv,"tevqlLdfrhpb:m:w")) != -1) {
     switch(ch) {
       case '?': usage(); break;
       case 't': o_touch = 1; break;
@@ -589,6 +649,7 @@ int main(int argc, char **argv) {
       case 'd': o_daemon = 1; break;
       case 'f': o_followsymlinks = 1; break;
       case 'r': o_raw = 1; break;
+      case 'h': o_ignorehardlinkeduplictes = 1; break;
       case 'p':
         o_touch = 1;
         printf("%d %s %ld\n", sizeof(void*) == 4 ? 32 : 64,
