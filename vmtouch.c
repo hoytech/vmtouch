@@ -109,6 +109,7 @@ int o_lock=0;
 int o_lockall=0;
 int o_daemon=0;
 int o_followsymlinks=0;
+int o_raw=0;
 int o_ignorehardlinkeduplictes=0;
 size_t o_max_file_size=500*1024*1024;
 int o_wait=0;
@@ -136,6 +137,7 @@ void usage() {
   printf("  -d daemon mode\n");
   printf("  -m <size> max file size to touch\n");
   printf("  -f follow symbolic links\n");
+  printf("  -r show raw output ('RAW x' where x is the number of resident bytes)\n");
   printf("  -h also count hardlinked copies\n");
   printf("  -w wait until all pages are locked (only useful together with -d)\n");
   printf("  -v verbose\n");
@@ -633,7 +635,7 @@ int main(int argc, char **argv) {
 
   pagesize = sysconf(_SC_PAGESIZE);
 
-  while((ch = getopt(argc, argv,"tevqlLdfhpb:m:w")) != -1) {
+  while((ch = getopt(argc, argv,"tevqlLdfrhpb:m:w")) != -1) {
     switch(ch) {
       case '?': usage(); break;
       case 't': o_touch = 1; break;
@@ -646,6 +648,7 @@ int main(int argc, char **argv) {
                 o_touch = 1; break;
       case 'd': o_daemon = 1; break;
       case 'f': o_followsymlinks = 1; break;
+      case 'r': o_raw = 1; break;
       case 'h': o_ignorehardlinkeduplictes = 1; break;
       case 'p':
         o_touch = 1;
@@ -720,19 +723,28 @@ int main(int argc, char **argv) {
 
   if (!o_quiet) {
     if (o_verbose) printf("\n");
-    printf("           Files: %" PRId64 "\n", total_files);
-    printf("     Directories: %" PRId64 "\n", total_dirs);
+    if (!o_raw) {
+      printf("           Files: %" PRId64 "\n", total_files);
+      printf("     Directories: %" PRId64 "\n", total_dirs);
+    }
     if (o_touch)
       printf("   Touched Pages: %" PRId64 " (%s)\n", total_pages, pretty_print_size(total_pages*pagesize));
     else if (o_evict)
       printf("   Evicted Pages: %" PRId64 " (%s)\n", total_pages, pretty_print_size(total_pages*pagesize));
     else {
-      printf("  Resident Pages: %" PRId64 "/%" PRId64 "  ", total_pages_in_core, total_pages);
-      printf("%s/", pretty_print_size(total_pages_in_core*pagesize));
-      printf("%s  ", pretty_print_size(total_pages*pagesize));
-      printf(total_pages ? "%.3g%%\n" : "\n", 100.0*total_pages_in_core/total_pages);
+      if (o_raw) {
+        printf("RAW %" PRId64, total_pages_in_core*pagesize);
+        printf("\n");
+      } else {
+        printf("  Resident Pages: %" PRId64 "/%" PRId64 "  ", total_pages_in_core, total_pages);
+        printf("%s/", pretty_print_size(total_pages_in_core*pagesize));
+        printf("%s  ", pretty_print_size(total_pages*pagesize));
+        printf(total_pages ? "%.3g%%\n" : "\n", 100.0*total_pages_in_core/total_pages);
+      }
     }
-    printf("         Elapsed: %.5g seconds\n", (end_time.tv_sec - start_time.tv_sec) + (double)(end_time.tv_usec - start_time.tv_usec)/1000000.0);
+    if (!o_raw) {
+      printf("         Elapsed: %.5g seconds\n", (end_time.tv_sec - start_time.tv_sec) + (double)(end_time.tv_usec - start_time.tv_usec)/1000000.0);
+    }
   }
 
   return 0;
