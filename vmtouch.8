@@ -123,8 +123,8 @@
 .rm #[ #] #H #V #F C
 .\" ========================================================================
 .\"
-.IX Title "VMTOUCH 8"
-.TH VMTOUCH 8 "2012-06-22" "perl v5.10.1" "User Contributed Perl Documentation"
+.IX Title "VMTOUCH 1"
+.TH VMTOUCH 1 "2013-07-21" "perl v5.10.1" "User Contributed Perl Documentation"
 .\" For nroff, turn off justification.  Always turn off hyphenation; it makes
 .\" way too many mistakes in technical documents.
 .if n .ad l
@@ -180,6 +180,9 @@ Verbose mode. While crawling, print out every file being processed along with it
 .IP "\-q" 4
 .IX Item "-q"
 Quiet mode. Suppress the end of crawl summary and all warnings that are normally printed to standard error. On success print nothing. Fatal errors print a single error message line to standard error.
+.IP "\-h" 4
+.IX Item "-h"
+Normally, if multiple files both point to the same inode then vmtouch will ignore all but the first it finds so as to avoid double-counting their pages. This option overrides this behaviour and double-counts anyways.
 .SH "PORTABILITY"
 .IX Header "PORTABILITY"
 The page residency summaries depend on \f(CWmincore(2)\fR which first appeared in 4.4BSD but is not present on all unix systems.
@@ -208,6 +211,18 @@ All vmtouch features have been confirmed to work on the following systems:
 Systems that support everything except eviction:
 .IP "OpenBSD 4.3" 4
 .IX Item "OpenBSD 4.3"
+.PP
+CPUs that have been tested:
+.IP "x86" 4
+.IX Item "x86"
+.PD 0
+.IP "amd64 (x86\-64)" 4
+.IX Item "amd64 (x86-64)"
+.IP "\s-1SPARC\s0" 4
+.IX Item "SPARC"
+.IP "ARMv7" 4
+.IX Item "ARMv7"
+.PD
 .PP
 We would like to support as many systems as possible so please send us any success reports, failure reports or patches. Thanks!
 .SH "SYSTEM NOTES"
