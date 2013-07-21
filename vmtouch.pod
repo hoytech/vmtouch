@@ -64,6 +64,10 @@ Verbose mode. While crawling, print out every file being processed along with it
 
 Quiet mode. Suppress the end of crawl summary and all warnings that are normally printed to standard error. On success print nothing. Fatal errors print a single error message line to standard error.
 
+=item -h
+
+Normally, if multiple files both point to the same inode then vmtouch will ignore all but the first it finds so as to avoid double-counting their pages. This option overrides this behaviour and double-counts anyways.
+
 =back
 
 
