@@ -11,9 +11,9 @@ you want with it.
 
 Compilation:
 
-$ gcc -Wall -O3 -o vmtouch vmtouch.c
+$ make
 
 
 Installation:
 
-$ sudo cp vmtouch /usr/local/bin/
+$ sudo make install
