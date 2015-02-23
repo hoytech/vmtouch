@@ -1,11 +1,14 @@
-PREFIX=/usr/local
-BINDIR=$(PREFIX)/bin
-MANDIR=$(PREFIX)/man
+PREFIX?=	/usr/local
+BINDIR?=	$(PREFIX)/bin
+MANDIR?=	$(PREFIX)/man
+
+CC?=		cc
+CFLAGS+=	-Wall -Werror
 
 all: build
 
 build:
-	gcc -Wall -O3 -g -o vmtouch vmtouch.c
+	${CC} ${CFLAGS} -o vmtouch vmtouch.c
 	pod2man --section 8 vmtouch.pod > vmtouch.8
 
 install: build
