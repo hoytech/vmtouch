@@ -51,6 +51,7 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // Required for posix_fadvise() on some linux systems
 #define _XOPEN_SOURCE 600
 // Required for mincore() on some linux systems
+#define _DEFAULT_SOURCE
 #define _BSD_SOURCE
 #endif
 
