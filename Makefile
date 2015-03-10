@@ -3,7 +3,7 @@ BINDIR?=	$(PREFIX)/bin
 MANDIR?=	$(PREFIX)/man
 
 CC?=		cc
-CFLAGS+=	-Wall -Werror
+CFLAGS+=	-Wall -O2 -g
 
 all: build
 
