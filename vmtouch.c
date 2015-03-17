@@ -530,7 +530,7 @@ void vmtouch_crawl(char *path) {
   int tp_path_len = strlen(path);
   int i;
 
-  if (path[tp_path_len-1] == '/') path[tp_path_len-1] = '\0'; // prevent ugly double slashes when printing path names
+  if (path[tp_path_len-1] == '/' && tp_path_len > 1) path[tp_path_len-1] = '\0'; // prevent ugly double slashes when printing path names
 
   res = o_followsymlinks ? stat(path, &sb) : lstat(path, &sb);
 
