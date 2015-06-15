@@ -111,7 +111,7 @@ int o_lockall=0;
 int o_daemon=0;
 int o_followsymlinks=0;
 int o_ignorehardlinkeduplictes=0;
-size_t o_max_file_size=(int64_t)1024 * (int64_t)(1024*1024*1024);
+size_t o_max_file_size=(int64_t)1024 * (int64_t)(1024*1024*1024); // 1TB
 int o_wait=0;
 
 int exit_pipe[2];
