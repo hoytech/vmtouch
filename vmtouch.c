@@ -93,6 +93,9 @@ int64_t total_pages_in_core=0;
 int64_t total_files=0;
 int64_t total_dirs=0;
 
+int64_t offset=0;
+int64_t max_len=0;
+
 unsigned int junk_counter; // just to prevent any compiler optimizations
 
 int curr_crawl_depth=0;
@@ -275,6 +278,30 @@ int64_t parse_size(char *inp) {
   return (int64_t) (mult*val);
 }
 
+void parse_range(char *inp) {
+  char *token;
+  int64_t upper_range=0;
+  
+  token = strsep(&inp,"-");
+  
+  if (inp == NULL)
+    upper_range = parse_size(token);
+  else {
+    if (*token != '\0')
+      offset = parse_size(token);
+    
+    token = strsep(&inp,"-");    
+    if (*token != '\0')
+      upper_range = parse_size(token);
+
+    if ((token = strsep(&inp,"-")) != NULL) fatal("malformed range");
+  }
+
+  if (upper_range) {
+    if (upper_range <= offset) fatal("range limits out of order");
+    max_len = upper_range - offset;
+  }  
+}
 
 int64_t bytes2pages(int64_t bytes) {
   return (bytes+pagesize-1) / pagesize;
@@ -634,7 +661,7 @@ int main(int argc, char **argv) {
 
   pagesize = sysconf(_SC_PAGESIZE);
 
-  while((ch = getopt(argc, argv,"tevqlLdfhpb:m:w")) != -1) {
+  while((ch = getopt(argc, argv,"tevqlLdfhp:b:m:w")) != -1) {
     switch(ch) {
       case '?': usage(); break;
       case 't': o_touch = 1; break;
@@ -648,13 +675,7 @@ int main(int argc, char **argv) {
       case 'd': o_daemon = 1; break;
       case 'f': o_followsymlinks = 1; break;
       case 'h': o_ignorehardlinkeduplictes = 1; break;
-      case 'p':
-        o_touch = 1;
-        printf("%d %s %ld\n", sizeof(void*) == 4 ? 32 : 64,
-                              ((char*)&o_touch)[0] ? "little" : "big",
-                              pagesize);
-        fprintf(stderr, "-p is DEPRECATED. This switch will do something else in a future vmtouch release.\n");
-        exit(0);
+      case 'p': parse_range(optarg); break;
       case 'm': {
         int64_t val = parse_size(optarg);
         o_max_file_size = (size_t) val;
