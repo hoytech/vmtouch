@@ -438,6 +438,10 @@ void vmtouch_file(char *path) {
 
   if (max_len > 0 && (offset + max_len) < len_of_file) {
     len_of_range = max_len;
+  } else if (offset >= len_of_file) {
+    warning("file %s smaller than offset, skipping", path);
+    close(fd);
+    return;
   } else {
     len_of_range = len_of_file - offset;
   }
