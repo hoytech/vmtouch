@@ -285,20 +285,21 @@ void parse_range(char *inp) {
   token = strsep(&inp,"-");
   
   if (inp == NULL)
-    upper_range = parse_size(token);
+    upper_range = parse_size(token); // single value provided
   else {
     if (*token != '\0')
-      offset = parse_size(token);
+      offset = parse_size(token); // value before hyphen
     
     token = strsep(&inp,"-");    
     if (*token != '\0')
-      upper_range = parse_size(token);
+      upper_range = parse_size(token); // value after hyphen
 
-    if ((token = strsep(&inp,"-")) != NULL) fatal("malformed range");
+    if ((token = strsep(&inp,"-")) != NULL) fatal("malformed range: multiple hyphens");
   }
 
   if (upper_range) {
     if (upper_range <= offset) fatal("range limits out of order");
+
     max_len = upper_range - offset;
   }  
 }
