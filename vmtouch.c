@@ -391,7 +391,8 @@ void vmtouch_file(char *path) {
   void *mem;
   struct stat sb;
   int64_t len_of_file;
-  int64_t pages_in_file;
+  int64_t len_of_range;
+  int64_t pages_in_range;
   int i;
   int res;
 
@@ -430,7 +431,13 @@ void vmtouch_file(char *path) {
     return;
   }
 
-  mem = mmap(NULL, len_of_file, PROT_READ, MAP_SHARED, fd, 0);
+  if (max_len > 0 && (offset + max_len) < len_of_file) {
+    len_of_range = max_len;
+  } else {
+    len_of_range = len_of_file - offset;
+  }
+
+  mem = mmap(NULL, len_of_range, PROT_READ, MAP_SHARED, fd, offset);
 
   if (mem == MAP_FAILED) {
     warning("unable to mmap file %s (%s), skipping", path, strerror(errno));
@@ -440,18 +447,18 @@ void vmtouch_file(char *path) {
 
   if (!aligned_p(mem)) fatal("mmap(%s) wasn't page aligned", path);
 
-  pages_in_file = bytes2pages(len_of_file);
+  pages_in_range = bytes2pages(len_of_range);
 
-  total_pages += pages_in_file;
+  total_pages += pages_in_range;
 
   if (o_evict) {
     if (o_verbose) printf("Evicting %s\n", path);
 
 #if defined(__linux__) || defined(__hpux)
-    if (posix_fadvise(fd, 0, len_of_file, POSIX_FADV_DONTNEED))
+    if (posix_fadvise(fd, offset, len_of_range, POSIX_FADV_DONTNEED))
       warning("unable to posix_fadvise file %s (%s)", path, strerror(errno));
 #elif defined(__FreeBSD__) || defined(__sun__) || defined(__APPLE__)
-    if (msync(mem, len_of_file, MS_INVALIDATE))
+    if (msync(mem, len_of_range, MS_INVALIDATE))
       warning("unable to msync invalidate file %s (%s)", path, strerror(errno));
 #else
     fatal("cache eviction not (yet?) supported on this platform");
@@ -459,12 +466,12 @@ void vmtouch_file(char *path) {
   } else {
     int64_t pages_in_core=0;
     double last_chart_print_time=0.0, temp_time;
-    char *mincore_array = malloc(pages_in_file);
+    char *mincore_array = malloc(pages_in_range);
     if (mincore_array == NULL) fatal("Failed to allocate memory for mincore array (%s)", strerror(errno));
 
     // 3rd arg to mincore is char* on BSD and unsigned char* on linux
-    if (mincore(mem, len_of_file, (void*)mincore_array)) fatal("mincore %s (%s)", path, strerror(errno));
-    for (i=0; i<pages_in_file; i++) {
+    if (mincore(mem, len_of_range, (void*)mincore_array)) fatal("mincore %s (%s)", path, strerror(errno));
+    for (i=0; i<pages_in_range; i++) {
       if (is_mincore_page_resident(mincore_array[i])) {
         pages_in_core++;
         total_pages_in_core++;
@@ -474,11 +481,11 @@ void vmtouch_file(char *path) {
     if (o_verbose) {
       printf("%s\n", path);
       last_chart_print_time = gettimeofday_as_double();
-      print_page_residency_chart(stdout, mincore_array, pages_in_file);
+      print_page_residency_chart(stdout, mincore_array, pages_in_range);
     }
 
     if (o_touch) {
-      for (i=0; i<pages_in_file; i++) {
+      for (i=0; i<pages_in_range; i++) {
         junk_counter += ((char*)mem)[i*pagesize];
         mincore_array[i] = 1;
 
@@ -487,14 +494,14 @@ void vmtouch_file(char *path) {
 
           if (temp_time > (last_chart_print_time+CHART_UPDATE_INTERVAL)) {
             last_chart_print_time = temp_time;
-            print_page_residency_chart(stdout, mincore_array, pages_in_file);
+            print_page_residency_chart(stdout, mincore_array, pages_in_range);
           }
         }
       }
     }
 
     if (o_verbose) {
-      print_page_residency_chart(stdout, mincore_array, pages_in_file);
+      print_page_residency_chart(stdout, mincore_array, pages_in_range);
       printf("\n");
     }
 
@@ -502,12 +509,12 @@ void vmtouch_file(char *path) {
   }
 
   if (o_lock) {
-    if (mlock(mem, len_of_file))
+    if (mlock(mem, len_of_range))
       fatal("mlock: %s (%s)", path, strerror(errno));
   }
 
   if (!o_lock && !o_lockall) {
-    if (munmap(mem, len_of_file)) warning("unable to munmap file %s (%s)", path, strerror(errno));
+    if (munmap(mem, len_of_range)) warning("unable to munmap file %s (%s)", path, strerror(errno));
     close(fd);
   }
 }
