@@ -469,7 +469,6 @@ void vmtouch_file(char *path) {
     fatal("cache eviction not (yet?) supported on this platform");
 #endif
   } else {
-    int64_t pages_in_core=0;
     double last_chart_print_time=0.0, temp_time;
     char *mincore_array = malloc(pages_in_range);
     if (mincore_array == NULL) fatal("Failed to allocate memory for mincore array (%s)", strerror(errno));
@@ -478,7 +477,6 @@ void vmtouch_file(char *path) {
     if (mincore(mem, len_of_range, (void*)mincore_array)) fatal("mincore %s (%s)", path, strerror(errno));
     for (i=0; i<pages_in_range; i++) {
       if (is_mincore_page_resident(mincore_array[i])) {
-        pages_in_core++;
         total_pages_in_core++;
       }
     }
