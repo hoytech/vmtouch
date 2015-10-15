@@ -139,6 +139,7 @@ void usage() {
   printf("  -L lock pages in physical memory with mlockall(2)\n");
   printf("  -d daemon mode\n");
   printf("  -m <size> max file size to touch\n");
+  printf("  -p <range> use the specified portion instead of the entire file\n");
   printf("  -f follow symbolic links\n");
   printf("  -h also count hardlinked copies\n");
   printf("  -w wait until all pages are locked (only useful together with -d)\n");
