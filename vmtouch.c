@@ -279,9 +279,14 @@ int64_t parse_size(char *inp) {
   return (int64_t) (mult*val);
 }
 
+int64_t bytes2pages(int64_t bytes) {
+  return (bytes+pagesize-1) / pagesize;
+}
+
 void parse_range(char *inp) {
   char *token;
   int64_t upper_range=0;
+  int64_t lower_range=0;
   
   token = strsep(&inp,"-");
   
@@ -289,7 +294,7 @@ void parse_range(char *inp) {
     upper_range = parse_size(token); // single value provided
   else {
     if (*token != '\0')
-      offset = parse_size(token); // value before hyphen
+      lower_range = parse_size(token); // value before hyphen
     
     token = strsep(&inp,"-");    
     if (*token != '\0')
@@ -298,15 +303,14 @@ void parse_range(char *inp) {
     if ((token = strsep(&inp,"-")) != NULL) fatal("malformed range: multiple hyphens");
   }
 
+  // offset must be multiple of pagesize
+  offset = bytes2pages(lower_range) * pagesize;
+
   if (upper_range) {
     if (upper_range <= offset) fatal("range limits out of order");
 
     max_len = upper_range - offset;
   }  
-}
-
-int64_t bytes2pages(int64_t bytes) {
-  return (bytes+pagesize-1) / pagesize;
 }
 
 int aligned_p(void *p) {
