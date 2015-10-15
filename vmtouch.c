@@ -494,7 +494,6 @@ void vmtouch_file(char *path) {
     if (o_touch) {
       for (i=0; i<pages_in_range; i++) {
         junk_counter += ((char*)mem)[i*pagesize];
-        if (!is_mincore_page_resident(mincore_array[i])) total_pages_in_core++;
         mincore_array[i] = 1;
 
         if (o_verbose) {
@@ -671,7 +670,6 @@ int main(int argc, char **argv) {
   char *prog = argv[0];
   struct timeval start_time;
   struct timeval end_time;
-  char *verb;
 
   if (pipe(exit_pipe))
     fatal("pipe: %s", strerror(errno));
@@ -762,13 +760,11 @@ int main(int argc, char **argv) {
     printf("           Files: %" PRId64 "\n", total_files);
     printf("     Directories: %" PRId64 "\n", total_dirs);
     if (o_touch)
-      verb = "   Touched";
-    else
-      verb = "  Resident";
-    if (o_evict)
+      printf("   Touched Pages: %" PRId64 " (%s)\n", total_pages, pretty_print_size(total_pages*pagesize));
+    else if (o_evict)
       printf("   Evicted Pages: %" PRId64 " (%s)\n", total_pages, pretty_print_size(total_pages*pagesize));
     else {
-      printf("%s Pages: %" PRId64 "/%" PRId64 "  ", verb, total_pages_in_core, total_pages);
+      printf("  Resident Pages: %" PRId64 "/%" PRId64 "  ", total_pages_in_core, total_pages);
       printf("%s/", pretty_print_size(total_pages_in_core*pagesize));
       printf("%s  ", pretty_print_size(total_pages*pagesize));
       if (total_pages)
