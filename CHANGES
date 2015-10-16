@@ -1,4 +1,20 @@
-upcoming
+1.0.1    2015-10-16
+  * Change default max file size (specified with -m) to
+    SIZE_MAX instead of 500m. This is 4G on 32-bit systems
+    and effectively unlimited on 64-bit systems.
+    (Thanks Erik Garrison)
+  * -p mode which lets you view/touch/evict/lock ranges of
+    files instead of just whole files. (Thanks Justas Lavišius)
+  * Update debian packaging files. (Thanks Luka Blaskovic)
+  * Fix bug that prevented you from trying to crawl your
+    entire filesystem from the root.
+  * Fix to work with glibc 2.20. (Thanks Jim Garrison)
+  * Fix format string warning when compiling with clang.
+    (Thanks Mikolaj Golub)
+  * Cleaner and better Makefile. (Thanks Emmanuel Kasper and
+    Mikolaj Golub)
+  * Don't double-count the same file that just happens to have
+    multiple hard-links to it. (Thanks Carsten Otto)
   * Add option to wait for daemon mode to finish mlocking.
     (Thanks Kristofer Karlsson)
 
