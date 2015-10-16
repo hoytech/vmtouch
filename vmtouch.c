@@ -93,6 +93,9 @@ int64_t total_pages_in_core=0;
 int64_t total_files=0;
 int64_t total_dirs=0;
 
+int64_t offset=0;
+int64_t max_len=0;
+
 unsigned int junk_counter; // just to prevent any compiler optimizations
 
 int curr_crawl_depth=0;
@@ -136,6 +139,7 @@ void usage() {
   printf("  -L lock pages in physical memory with mlockall(2)\n");
   printf("  -d daemon mode\n");
   printf("  -m <size> max file size to touch\n");
+  printf("  -p <range> use the specified portion instead of the entire file\n");
   printf("  -f follow symbolic links\n");
   printf("  -h also count hardlinked copies\n");
   printf("  -w wait until all pages are locked (only useful together with -d)\n");
@@ -275,9 +279,38 @@ int64_t parse_size(char *inp) {
   return (int64_t) (mult*val);
 }
 
-
 int64_t bytes2pages(int64_t bytes) {
   return (bytes+pagesize-1) / pagesize;
+}
+
+void parse_range(char *inp) {
+  char *token;
+  int64_t upper_range=0;
+  int64_t lower_range=0;
+  
+  token = strsep(&inp,"-");
+  
+  if (inp == NULL)
+    upper_range = parse_size(token); // single value provided
+  else {
+    if (*token != '\0')
+      lower_range = parse_size(token); // value before hyphen
+    
+    token = strsep(&inp,"-");    
+    if (*token != '\0')
+      upper_range = parse_size(token); // value after hyphen
+
+    if ((token = strsep(&inp,"-")) != NULL) fatal("malformed range: multiple hyphens");
+  }
+
+  // offset must be multiple of pagesize
+  offset = bytes2pages(lower_range) * pagesize;
+
+  if (upper_range) {
+    if (upper_range <= offset) fatal("range limits out of order");
+
+    max_len = upper_range - offset;
+  }  
 }
 
 int aligned_p(void *p) {
@@ -363,7 +396,8 @@ void vmtouch_file(char *path) {
   void *mem;
   struct stat sb;
   int64_t len_of_file;
-  int64_t pages_in_file;
+  int64_t len_of_range;
+  int64_t pages_in_range;
   int i;
   int res;
 
@@ -402,7 +436,17 @@ void vmtouch_file(char *path) {
     return;
   }
 
-  mem = mmap(NULL, len_of_file, PROT_READ, MAP_SHARED, fd, 0);
+  if (max_len > 0 && (offset + max_len) < len_of_file) {
+    len_of_range = max_len;
+  } else if (offset >= len_of_file) {
+    warning("file %s smaller than offset, skipping", path);
+    close(fd);
+    return;
+  } else {
+    len_of_range = len_of_file - offset;
+  }
+
+  mem = mmap(NULL, len_of_range, PROT_READ, MAP_SHARED, fd, offset);
 
   if (mem == MAP_FAILED) {
     warning("unable to mmap file %s (%s), skipping", path, strerror(errno));
@@ -412,33 +456,31 @@ void vmtouch_file(char *path) {
 
   if (!aligned_p(mem)) fatal("mmap(%s) wasn't page aligned", path);
 
-  pages_in_file = bytes2pages(len_of_file);
+  pages_in_range = bytes2pages(len_of_range);
 
-  total_pages += pages_in_file;
+  total_pages += pages_in_range;
 
   if (o_evict) {
     if (o_verbose) printf("Evicting %s\n", path);
 
 #if defined(__linux__) || defined(__hpux)
-    if (posix_fadvise(fd, 0, len_of_file, POSIX_FADV_DONTNEED))
+    if (posix_fadvise(fd, offset, len_of_range, POSIX_FADV_DONTNEED))
       warning("unable to posix_fadvise file %s (%s)", path, strerror(errno));
 #elif defined(__FreeBSD__) || defined(__sun__) || defined(__APPLE__)
-    if (msync(mem, len_of_file, MS_INVALIDATE))
+    if (msync(mem, len_of_range, MS_INVALIDATE))
       warning("unable to msync invalidate file %s (%s)", path, strerror(errno));
 #else
     fatal("cache eviction not (yet?) supported on this platform");
 #endif
   } else {
-    int64_t pages_in_core=0;
     double last_chart_print_time=0.0, temp_time;
-    char *mincore_array = malloc(pages_in_file);
+    char *mincore_array = malloc(pages_in_range);
     if (mincore_array == NULL) fatal("Failed to allocate memory for mincore array (%s)", strerror(errno));
 
     // 3rd arg to mincore is char* on BSD and unsigned char* on linux
-    if (mincore(mem, len_of_file, (void*)mincore_array)) fatal("mincore %s (%s)", path, strerror(errno));
-    for (i=0; i<pages_in_file; i++) {
+    if (mincore(mem, len_of_range, (void*)mincore_array)) fatal("mincore %s (%s)", path, strerror(errno));
+    for (i=0; i<pages_in_range; i++) {
       if (is_mincore_page_resident(mincore_array[i])) {
-        pages_in_core++;
         total_pages_in_core++;
       }
     }
@@ -446,11 +488,11 @@ void vmtouch_file(char *path) {
     if (o_verbose) {
       printf("%s\n", path);
       last_chart_print_time = gettimeofday_as_double();
-      print_page_residency_chart(stdout, mincore_array, pages_in_file);
+      print_page_residency_chart(stdout, mincore_array, pages_in_range);
     }
 
     if (o_touch) {
-      for (i=0; i<pages_in_file; i++) {
+      for (i=0; i<pages_in_range; i++) {
         junk_counter += ((char*)mem)[i*pagesize];
         mincore_array[i] = 1;
 
@@ -459,14 +501,14 @@ void vmtouch_file(char *path) {
 
           if (temp_time > (last_chart_print_time+CHART_UPDATE_INTERVAL)) {
             last_chart_print_time = temp_time;
-            print_page_residency_chart(stdout, mincore_array, pages_in_file);
+            print_page_residency_chart(stdout, mincore_array, pages_in_range);
           }
         }
       }
     }
 
     if (o_verbose) {
-      print_page_residency_chart(stdout, mincore_array, pages_in_file);
+      print_page_residency_chart(stdout, mincore_array, pages_in_range);
       printf("\n");
     }
 
@@ -474,12 +516,12 @@ void vmtouch_file(char *path) {
   }
 
   if (o_lock) {
-    if (mlock(mem, len_of_file))
+    if (mlock(mem, len_of_range))
       fatal("mlock: %s (%s)", path, strerror(errno));
   }
 
   if (!o_lock && !o_lockall) {
-    if (munmap(mem, len_of_file)) warning("unable to munmap file %s (%s)", path, strerror(errno));
+    if (munmap(mem, len_of_range)) warning("unable to munmap file %s (%s)", path, strerror(errno));
     close(fd);
   }
 }
@@ -634,7 +676,7 @@ int main(int argc, char **argv) {
 
   pagesize = sysconf(_SC_PAGESIZE);
 
-  while((ch = getopt(argc, argv,"tevqlLdfhpb:m:w")) != -1) {
+  while((ch = getopt(argc, argv,"tevqlLdfhp:b:m:w")) != -1) {
     switch(ch) {
       case '?': usage(); break;
       case 't': o_touch = 1; break;
@@ -648,13 +690,7 @@ int main(int argc, char **argv) {
       case 'd': o_daemon = 1; break;
       case 'f': o_followsymlinks = 1; break;
       case 'h': o_ignorehardlinkeduplictes = 1; break;
-      case 'p':
-        o_touch = 1;
-        printf("%d %s %ld\n", sizeof(void*) == 4 ? 32 : 64,
-                              ((char*)&o_touch)[0] ? "little" : "big",
-                              pagesize);
-        fprintf(stderr, "-p is DEPRECATED. This switch will do something else in a future vmtouch release.\n");
-        exit(0);
+      case 'p': parse_range(optarg); break;
       case 'm': {
         int64_t val = parse_size(optarg);
         o_max_file_size = (size_t) val;
