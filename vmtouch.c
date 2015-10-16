@@ -287,16 +287,16 @@ void parse_range(char *inp) {
   char *token;
   int64_t upper_range=0;
   int64_t lower_range=0;
-  
+
   token = strsep(&inp,"-");
-  
+
   if (inp == NULL)
     upper_range = parse_size(token); // single value provided
   else {
     if (*token != '\0')
       lower_range = parse_size(token); // value before hyphen
-    
-    token = strsep(&inp,"-");    
+
+    token = strsep(&inp,"-");
     if (*token != '\0')
       upper_range = parse_size(token); // value after hyphen
 
@@ -310,7 +310,7 @@ void parse_range(char *inp) {
     if (upper_range <= offset) fatal("range limits out of order");
 
     max_len = upper_range - offset;
-  }  
+  }
 }
 
 int aligned_p(void *p) {
