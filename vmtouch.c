@@ -61,6 +61,7 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <stdlib.h>
 #include <ctype.h>
 #include <stdarg.h>
+#include <stdint.h>
 #include <time.h>
 #include <sys/select.h>
 #include <sys/types.h>
@@ -114,7 +115,7 @@ int o_lockall=0;
 int o_daemon=0;
 int o_followsymlinks=0;
 int o_ignorehardlinkeduplictes=0;
-size_t o_max_file_size=500*1024*1024;
+size_t o_max_file_size=SIZE_MAX;
 int o_wait=0;
 
 int exit_pipe[2];
