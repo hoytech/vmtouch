@@ -17,3 +17,13 @@ $ make
 Installation:
 
 $ sudo make install
+
+
+Manual page:
+
+https://github.com/hoytech/vmtouch/blob/master/vmtouch.pod
+
+
+More information:
+
+http://hoytech.com/vmtouch/
