@@ -11,9 +11,6 @@ MEDIUM priority
 
 * Machine readable input/output (JSON?)
 
-* -p "page mode" for touching, evicting, or locking just a range of pages in
-  a file... same format as nmap -p. 4k-50k, 1.5G-2G, -5M, -
-
 * Try opening large mappings with MAP_HUGETLB on linux 2.6.32+
 
 * From Dennis (Apr 2012):
