@@ -13,7 +13,7 @@ vmtouch: vmtouch.c
 	${CC} ${CFLAGS} -o vmtouch vmtouch.c
 
 vmtouch.8: vmtouch.pod
-	pod2man --section 8 vmtouch.pod > vmtouch.8
+	pod2man --section 8 --center "System Manager's Manual" --release " " vmtouch.pod > vmtouch.8
 
 install: vmtouch vmtouch.8
 	mkdir -p $(BINDIR) $(MANDIR)
