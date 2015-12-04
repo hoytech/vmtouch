@@ -1,3 +1,7 @@
+1.0.2    2015-12-04
+  * Clean-up Makefile and improve its portability.
+  * Documentation updates.
+
 1.0.1    2015-10-16
   * Change default max file size (specified with -m) to
     SIZE_MAX instead of 500m. This is 4G on 32-bit systems
