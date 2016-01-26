@@ -4,7 +4,7 @@ Priority: extra
 Maintainer: Alexey Ivanov <rbtz@yandex-team.ru>
 Build-Depends: debhelper (>= 7.0.50~)
 Standards-Version: 3.9.2
-Homepage: http://hoytech.com/vmtouch/
+Homepage: https://hoytech.com/vmtouch/
 Vcs-Git: git://github.com/hoytech/vmtouch.git
 Vcs-Browser: https://github.com/hoytech/vmtouch
 
