@@ -10,7 +10,7 @@ Compilation:
 
 ************************************************************************
 
-Copyright (c) 2009-2015 Doug Hoyte and contributors. All rights reserved.
+Copyright (c) 2009-2016 Doug Hoyte and contributors. All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions
