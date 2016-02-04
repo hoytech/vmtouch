@@ -278,7 +278,11 @@ int64_t parse_size(char *inp) {
 
   if (val <= 0 || val == HUGE_VAL || *tp != '\0') fatal(errstr);
 
-  return (int64_t) (mult*val);
+  val *= mult;
+
+  if (val > INT64_MAX) fatal(errstr);
+
+  return (int64_t) val;
 }
 
 int64_t bytes2pages(int64_t bytes) {
