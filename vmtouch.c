@@ -75,6 +75,7 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <dirent.h>
 #include <errno.h>
 #include <fcntl.h>
+#include <math.h>
 #include <search.h>
 
 /*
@@ -275,7 +276,7 @@ int64_t parse_size(char *inp) {
 
   val = strtod(inp, &tp);
 
-  if (val <= 0 || *tp != '\0') fatal(errstr);
+  if (val <= 0 || val == HUGE_VAL || *tp != '\0') fatal(errstr);
 
   return (int64_t) (mult*val);
 }
