@@ -78,6 +78,12 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <math.h>
 #include <search.h>
 
+#if defined(__linux__)
+// Used to find size of block devices
+#include <sys/ioctl.h>
+#include <sys/mount.h>
+#endif
+
 /*
  * To find out if the stat results from a single file correspond to a file we
  * have already seen, we need to compare both the device and the inode
@@ -398,35 +404,14 @@ void print_page_residency_chart(FILE *out, char *mincore_array, int64_t pages_in
 
 
 void vmtouch_file(char *path) {
-  int fd;
-  void *mem;
+  int fd = -1;
+  void *mem = NULL;
   struct stat sb;
   int64_t len_of_file;
   int64_t len_of_range;
   int64_t pages_in_range;
   int i;
   int res;
-
-  res = o_followsymlinks ? stat(path, &sb) : lstat(path, &sb);
-
-  if (res) {
-    warning("unable to stat %s (%s), skipping", path, strerror(errno));
-    return;
-  }
-
-  if (S_ISLNK(sb.st_mode)) {
-    warning("not following symbolic link %s", path);
-    return;
-  }
-
-  if (sb.st_size == 0) return;
-
-  if (sb.st_size > o_max_file_size) {
-    warning("file %s too large, skipping", path);
-    return;
-  }
-
-  len_of_file = sb.st_size;
 
   retry_open:
 
@@ -439,15 +424,45 @@ void vmtouch_file(char *path) {
     }
 
     warning("unable to open %s (%s), skipping", path, strerror(errno));
-    return;
+    goto bail;
   }
+
+  res = fstat(fd, &sb);
+
+  if (res) {
+    warning("unable to fstat %s (%s), skipping", path, strerror(errno));
+    goto bail;
+  }
+
+  if (S_ISBLK(sb.st_mode)) {
+#if defined(__linux__)
+    if (ioctl(fd, BLKGETSIZE64, &len_of_file)) {
+      warning("unable to ioctl %s (%s), skipping", path, strerror(errno));
+      goto bail;
+    }
+#else
+    fatal("discovering size of block devices not (yet?) supported on this platform");
+#endif
+  } else {
+    len_of_file = sb.st_size;
+  }
+
+
+  if (len_of_file == 0) {
+    goto bail;
+  }
+
+  if (len_of_file > o_max_file_size) {
+    warning("file %s too large, skipping", path);
+    goto bail;
+  }
+
 
   if (max_len > 0 && (offset + max_len) < len_of_file) {
     len_of_range = max_len;
   } else if (offset >= len_of_file) {
     warning("file %s smaller than offset, skipping", path);
-    close(fd);
-    return;
+    goto bail;
   } else {
     len_of_range = len_of_file - offset;
   }
@@ -456,8 +471,7 @@ void vmtouch_file(char *path) {
 
   if (mem == MAP_FAILED) {
     warning("unable to mmap file %s (%s), skipping", path, strerror(errno));
-    close(fd);
-    return;
+    goto bail;
   }
 
   if (!aligned_p(mem)) fatal("mmap(%s) wasn't page aligned", path);
@@ -526,8 +540,13 @@ void vmtouch_file(char *path) {
       fatal("mlock: %s (%s)", path, strerror(errno));
   }
 
-  if (!o_lock && !o_lockall) {
+  bail:
+
+  if (!o_lock && !o_lockall && mem) {
     if (munmap(mem, len_of_range)) warning("unable to munmap file %s (%s)", path, strerror(errno));
+  }
+
+  if (fd != -1) {
     close(fd);
   }
 }
@@ -654,7 +673,10 @@ void vmtouch_crawl(char *path) {
         warning("unable to closedir %s (%s)", path, strerror(errno));
         return;
       }
-    } else if (S_ISREG(sb.st_mode)) {
+    } else if (S_ISLNK(sb.st_mode)) {
+      warning("not following symbolic link %s", path);
+      return;
+    } else if (S_ISREG(sb.st_mode) || S_ISBLK(sb.st_mode)) {
       total_files++;
       vmtouch_file(path);
     } else {
