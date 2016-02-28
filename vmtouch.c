@@ -310,7 +310,7 @@ void parse_range(char *inp) {
   }
 
   // offset must be multiple of pagesize
-  offset = bytes2pages(lower_range) * pagesize;
+  offset = lower_range > 0 ? (bytes2pages(lower_range) - 1) * pagesize : 0;
 
   if (upper_range) {
     if (upper_range <= offset) fatal("range limits out of order");
