@@ -276,7 +276,7 @@ int64_t parse_size(char *inp) {
 
   val = strtod(inp, &tp);
 
-  if (val <= 0 || val == HUGE_VAL || *tp != '\0') fatal(errstr);
+  if (val < 0 || val == HUGE_VAL || *tp != '\0') fatal(errstr);
 
   val *= mult;
 
@@ -310,7 +310,7 @@ void parse_range(char *inp) {
   }
 
   // offset must be multiple of pagesize
-  offset = bytes2pages(lower_range) * pagesize;
+  offset = (lower_range / pagesize) * pagesize;
 
   if (upper_range) {
     if (upper_range <= offset) fatal("range limits out of order");
