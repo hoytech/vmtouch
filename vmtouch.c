@@ -75,6 +75,10 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <dirent.h>
 #include <errno.h>
 #include <fcntl.h>
+#ifndef _GNU_SOURCE
+#define _GNU_SOURCE // for O_NOATIME
+#define O_NOATIME 01000000
+#endif
 #include <math.h>
 #include <search.h>
 
@@ -430,7 +434,7 @@ void vmtouch_file(char *path) {
 
   retry_open:
 
-  fd = open(path, O_RDONLY, 0);
+  fd = open(path, O_RDONLY|O_NOATIME, 0);
 
   if (fd == -1) {
     if (errno == ENFILE || errno == EMFILE) {
