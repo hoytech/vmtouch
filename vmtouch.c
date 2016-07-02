@@ -428,18 +428,19 @@ void vmtouch_file(char *path) {
 
   len_of_file = sb.st_size;
 
-  retry_open:
+  for (;;) {
+    fd = open(path, O_RDONLY, 0);
 
-  fd = open(path, O_RDONLY, 0);
+    if (fd == -1) {
+      if (errno == ENFILE || errno == EMFILE) {
+        increment_nofile_rlimit();
+        continue;
+      }
 
-  if (fd == -1) {
-    if (errno == ENFILE || errno == EMFILE) {
-      increment_nofile_rlimit();
-      goto retry_open;
+      warning("unable to open %s (%s), skipping", path, strerror(errno));
+      return;
     }
-
-    warning("unable to open %s (%s), skipping", path, strerror(errno));
-    return;
+    break;
   }
 
   if (max_len > 0 && (offset + max_len) < len_of_file) {
@@ -621,18 +622,19 @@ void vmtouch_crawl(char *path) {
 
       crawl_inodes[curr_crawl_depth] = sb.st_ino;
 
-      retry_opendir:
+      for (;;) {
+        dirp = opendir(path);
 
-      dirp = opendir(path);
+        if (dirp == NULL) {
+          if (errno == ENFILE || errno == EMFILE) {
+            increment_nofile_rlimit();
+            continue;
+          }
 
-      if (dirp == NULL) {
-        if (errno == ENFILE || errno == EMFILE) {
-          increment_nofile_rlimit();
-          goto retry_opendir;
+          warning("unable to opendir %s (%s), skipping", path, strerror(errno));
+          return;
         }
-
-        warning("unable to opendir %s (%s), skipping", path, strerror(errno));
-        return;
+        break;
       }
 
       while((de = readdir(dirp)) != NULL) {
@@ -640,15 +642,13 @@ void vmtouch_crawl(char *path) {
 
         if (snprintf(npath, sizeof(npath), "%s/%s", path, de->d_name) >= sizeof(npath)) {
           warning("path too long %s", path);
-          goto bail;
+          break;
         }
 
         curr_crawl_depth++;
         vmtouch_crawl(npath);
         curr_crawl_depth--;
       }
-
-      bail:
 
       if (closedir(dirp)) {
         warning("unable to closedir %s (%s)", path, strerror(errno));
