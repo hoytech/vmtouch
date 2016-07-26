@@ -21,4 +21,17 @@ vmtouch is a tool for learning about and controlling the file system cache of un
 * [System tuning parameters](https://github.com/hoytech/vmtouch/blob/master/TUNING.md)
 
 
+### Support
+
+To complement the open source community, Hoytech offers services related to vmtouch:
+
+* Advanced feature development
+* Support contracts
+* Training sessions
+
+Please <a href="mailto:doug@hoytech.com?subject=vmtouch support">contact Doug Hoyte</a> for more information.
+
+
+### Authors
+
 vmtouch is copyright (c) 2009-2016 Doug Hoyte and contributors.
