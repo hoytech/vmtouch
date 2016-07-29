@@ -32,3 +32,5 @@ On Solaris, the memory locked page limit can be set on per-project or per-zone b
     project.max-locked-memory
             usage               0B
             system          16.0EB    max   deny                                 -
+
+Also, there is the PRIV_PROC_LOCK_MEMORY privilege which controls whether given process can lock memory.
