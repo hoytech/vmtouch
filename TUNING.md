@@ -21,3 +21,14 @@ See your operating system's `mlock(2)` manual page since it probably describes t
 ### OpenBSD
 
 * Has both a per-process resource limit and a system-wide limit on locked memory, see [mlock(2)](http://man.openbsd.org/mlock.2)
+
+### Solaris
+
+On Solaris, the memory locked page limit can be set on per-project or per-zone basis, see resource-controls(5) man page for details. The limits can be manipulated and observed using prctl or zonecfg command, e.g.:
+
+    $ prctl -n project.max-locked-memory -i process $$
+    process: 4690: bash
+    NAME    PRIVILEGE       VALUE    FLAG   ACTION                       RECIPIENT
+    project.max-locked-memory
+            usage               0B
+            system          16.0EB    max   deny                                 -
