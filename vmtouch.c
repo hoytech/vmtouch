@@ -47,12 +47,15 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // on HP-UX.
 #define _FILE_OFFSET_BITS 64
 #endif
+
 #ifdef __linux__
 // Required for posix_fadvise() on some linux systems
 #define _XOPEN_SOURCE 600
 // Required for mincore() on some linux systems
 #define _DEFAULT_SOURCE
 #define _BSD_SOURCE
+// for O_NOATIME
+#define _GNU_SOURCE
 #endif
 
 #include <stdio.h>
@@ -75,10 +78,6 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <dirent.h>
 #include <errno.h>
 #include <fcntl.h>
-#ifndef _GNU_SOURCE
-#define _GNU_SOURCE // for O_NOATIME
-#define O_NOATIME 01000000
-#endif
 #include <math.h>
 #include <search.h>
 
@@ -416,10 +415,17 @@ void vmtouch_file(char *path) {
   int64_t pages_in_range;
   int i;
   int res;
+  int open_flags;
 
   retry_open:
 
-  fd = open(path, O_RDONLY|O_NOATIME, 0);
+  open_flags = O_RDONLY;
+
+#if defined(O_NOATIME)
+  open_flags |= O_NOATIME;
+#endif
+
+  fd = open(path, open_flags, 0);
 
   if (fd == -1) {
     if (errno == ENFILE || errno == EMFILE) {
