@@ -410,8 +410,8 @@ void vmtouch_file(char *path) {
   int fd = -1;
   void *mem = NULL;
   struct stat sb;
-  int64_t len_of_file;
-  int64_t len_of_range;
+  int64_t len_of_file=0;
+  int64_t len_of_range=0;
   int64_t pages_in_range;
   int i;
   int res;
