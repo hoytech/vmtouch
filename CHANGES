@@ -1,3 +1,23 @@
+1.1.0    2016-08-08
+  * Better error checking for extremely large values to command
+    line parameters (Thanks Matthew Fernandez)
+  * Fix some boundary conditions in the range support added
+    in 1.0.1 (Thanks Justas Lavišius)
+  * On Linux, support touching/evicting/displaying block devices
+    directly. This displays the underlying buffer cache, not the
+    filesystem cache (Thanks to maq123 for the suggestion)
+  * On Linux, open files with O_NOATIME so that we don't cause
+    unnecessary disk activity recording access times
+    (Thanks Mat R.)
+  * Replaces a stat() call with an fstat() call which is slightly
+    more efficient.
+  * Skipped symlinks are no longer included in total file count
+  * Closes file descriptors after locking memory since there is
+    no need to keep them open. This makes it less likely you will
+    hit the RLIMIT_NOFILE when using -l or -L.
+  * TUNING.md file (Thanks to Artem Sheremet for the idea and
+    to Vladimir Kotal for Solaris tuning info)
+
 1.0.2    2015-12-04
   * Clean-up Makefile and improve its portability.
   * Documentation updates.

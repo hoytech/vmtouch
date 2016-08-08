@@ -37,7 +37,7 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ***********************************************************************/
 
 
-#define VMTOUCH_VERSION "1.0.2"
+#define VMTOUCH_VERSION "1.1.0"
 #define RESIDENCY_CHART_WIDTH 60
 #define CHART_UPDATE_INTERVAL 0.1
 #define MAX_CRAWL_DEPTH 1024
