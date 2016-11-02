@@ -37,7 +37,7 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ***********************************************************************/
 
 
-#define VMTOUCH_VERSION "1.1.1"
+#define VMTOUCH_VERSION "1.1.0"
 #define RESIDENCY_CHART_WIDTH 60
 #define CHART_UPDATE_INTERVAL 0.1
 #define MAX_CRAWL_DEPTH 1024
@@ -351,8 +351,7 @@ void parse_ignorelist(char *inp) {
     return;
   }
 
-  ignore_list[ignore_list_size] = malloc(len+1);
-  strcpy(ignore_list[ignore_list_size], inp);
+  ignore_list[ignore_list_size] = strdup(inp);
   ignore_list_size++;
 }
 
@@ -620,10 +619,9 @@ bool is_ignored(const char* path) {
   // We need to find the 'file' part of the path:
   char *filename = strrchr(path, '/');
   if (filename == NULL) {
-    filename = malloc(strlen(path));
-    *filename = *path;
+    filename = strdup(path);
   }
-  filename += sizeof(char); // to remove the / at the beginning
+  filename++; // to remove the / at the beginning
 
   for (int i = 0; i < ignore_list_size; i++) {
     if (strcmp(filename, ignore_list[i]) == 0) {
