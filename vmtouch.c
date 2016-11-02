@@ -41,6 +41,8 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define RESIDENCY_CHART_WIDTH 60
 #define CHART_UPDATE_INTERVAL 0.1
 #define MAX_CRAWL_DEPTH 1024
+#define MAX_IGNORE_SIZE 1024
+#define MAX_FILENAME_LENGTH 1024
 
 #if defined(__linux__) || (defined(__hpux) && !defined(__LP64__))
 // Make sure off_t is 64 bits on linux and when creating 32bit programs
@@ -65,6 +67,7 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ctype.h>
 #include <stdarg.h>
 #include <stdint.h>
+#include <stdbool.h>
 #include <time.h>
 #include <sys/select.h>
 #include <sys/types.h>
@@ -127,6 +130,8 @@ int o_followsymlinks=0;
 int o_ignorehardlinkeduplictes=0;
 size_t o_max_file_size=SIZE_MAX;
 int o_wait=0;
+char *ignore_list[MAX_IGNORE_SIZE];
+int ignore_list_size = 0;
 
 int exit_pipe[2];
 
@@ -153,6 +158,7 @@ void usage() {
   printf("  -p <range> use the specified portion instead of the entire file\n");
   printf("  -f follow symbolic links\n");
   printf("  -h also count hardlinked copies\n");
+  printf("  -i ignores files and directories with this name\n");
   printf("  -w wait until all pages are locked (only useful together with -d)\n");
   printf("  -v verbose\n");
   printf("  -q quiet\n");
@@ -326,6 +332,27 @@ void parse_range(char *inp) {
 
     max_len = upper_range - offset;
   }
+}
+
+void parse_ignorelist(char *inp) {
+  if (inp == NULL) {
+    return;
+  }
+
+  int len = strlen(inp);
+
+  if (len > MAX_FILENAME_LENGTH) {
+    warning("ignoring too long filename in ignore-list: %s", inp);
+    return;
+  }
+
+  if (ignore_list_size >= MAX_IGNORE_SIZE) {
+    warning("ignore-list only supports up to %d entries", MAX_IGNORE_SIZE);
+    return;
+  }
+
+  ignore_list[ignore_list_size] = strdup(inp);
+  ignore_list_size++;
 }
 
 int aligned_p(void *p) {
@@ -587,6 +614,27 @@ static inline void add_object (struct stat *st)
   }
 }
 
+
+bool is_ignored(const char* path) {
+  // We need to find the 'file' part of the path:
+  char *filename = strrchr(path, '/');
+  if (filename == NULL) {
+    filename = strdup(path);
+    if (filename == NULL) {
+      fatal("-i: out of memory");
+    }
+  }
+  filename++; // to remove the / at the beginning
+
+  for (int i = 0; i < ignore_list_size; i++) {
+    if (strcmp(filename, ignore_list[i]) == 0) {
+      return true;
+    }
+  }
+  return false;
+}
+
+
 // return true only if the device and inode information has not been added before
 static inline int find_object(struct stat *st)
 {
@@ -608,6 +656,10 @@ void vmtouch_crawl(char *path) {
   int i;
 
   if (path[tp_path_len-1] == '/' && tp_path_len > 1) path[tp_path_len-1] = '\0'; // prevent ugly double slashes when printing path names
+
+  if (is_ignored(path)) {
+    return;
+  }
 
   res = o_followsymlinks ? stat(path, &sb) : lstat(path, &sb);
 
@@ -714,7 +766,7 @@ int main(int argc, char **argv) {
 
   pagesize = sysconf(_SC_PAGESIZE);
 
-  while((ch = getopt(argc, argv,"tevqlLdfhp:b:m:w")) != -1) {
+  while((ch = getopt(argc, argv,"tevqlLdfhi:p:b:m:w")) != -1) {
     switch(ch) {
       case '?': usage(); break;
       case 't': o_touch = 1; break;
@@ -729,6 +781,7 @@ int main(int argc, char **argv) {
       case 'f': o_followsymlinks = 1; break;
       case 'h': o_ignorehardlinkeduplictes = 1; break;
       case 'p': parse_range(optarg); break;
+      case 'i': parse_ignorelist(optarg); break;
       case 'm': {
         int64_t val = parse_size(optarg);
         o_max_file_size = (size_t) val;

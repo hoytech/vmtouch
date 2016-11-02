@@ -1,3 +1,7 @@
+1.1.1    2016-11-01
+  * -i mode which lets you ignore entire files and directories
+    (Thanks Etienne Bruines)
+
 1.1.0    2016-08-08
   * Better error checking for extremely large values to command
     line parameters (Thanks Matthew Fernandez)
