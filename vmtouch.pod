@@ -60,9 +60,9 @@ Page mode. Maps the portion of the file specified by a range instead of the enti
 
 Follow symbolic links. With this option, vmtouch will descend into symbolic links that point to directories and will touch regular files pointed to by symbolic links. Symbolic link loops are detected and issue warnings.
 
-=item -i
+=item -i <filename>
 
-Ignores all files and directories with that name.
+Ignores all files and directories with the given name. Can be specified multiple times.
 
 =item -v
 

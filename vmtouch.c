@@ -41,7 +41,7 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define RESIDENCY_CHART_WIDTH 60
 #define CHART_UPDATE_INTERVAL 0.1
 #define MAX_CRAWL_DEPTH 1024
-#define MAX_IGNORE_SIZE 1024
+#define MAX_NUMBER_OF_IGNORES 1024
 #define MAX_FILENAME_LENGTH 1024
 
 #if defined(__linux__) || (defined(__hpux) && !defined(__LP64__))
@@ -67,7 +67,6 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ctype.h>
 #include <stdarg.h>
 #include <stdint.h>
-#include <stdbool.h>
 #include <time.h>
 #include <sys/select.h>
 #include <sys/types.h>
@@ -83,6 +82,7 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <fcntl.h>
 #include <math.h>
 #include <search.h>
+#include <libgen.h>
 
 #if defined(__linux__)
 // Used to find size of block devices
@@ -130,8 +130,8 @@ int o_followsymlinks=0;
 int o_ignorehardlinkeduplictes=0;
 size_t o_max_file_size=SIZE_MAX;
 int o_wait=0;
-char *ignore_list[MAX_IGNORE_SIZE];
-int ignore_list_size = 0;
+char *ignore_list[MAX_NUMBER_OF_IGNORES];
+int number_of_ignores=0;
 
 int exit_pipe[2];
 
@@ -334,7 +334,7 @@ void parse_range(char *inp) {
   }
 }
 
-void parse_ignorelist(char *inp) {
+void parse_ignore_item(char *inp) {
   if (inp == NULL) {
     return;
   }
@@ -342,17 +342,17 @@ void parse_ignorelist(char *inp) {
   int len = strlen(inp);
 
   if (len > MAX_FILENAME_LENGTH) {
-    warning("ignoring too long filename in ignore-list: %s", inp);
+    fatal("long filename in ignore-list: %s", inp);
     return;
   }
 
-  if (ignore_list_size >= MAX_IGNORE_SIZE) {
-    warning("ignore-list only supports up to %d entries", MAX_IGNORE_SIZE);
+  if (number_of_ignores >= MAX_NUMBER_OF_IGNORES) {
+    fatal("ignore-list only supports up to %d entries", MAX_NUMBER_OF_IGNORES);
     return;
   }
 
-  ignore_list[ignore_list_size] = strdup(inp);
-  ignore_list_size++;
+  ignore_list[number_of_ignores] = strdup(inp);
+  number_of_ignores++;
 }
 
 int aligned_p(void *p) {
@@ -615,23 +615,22 @@ static inline void add_object (struct stat *st)
 }
 
 
-bool is_ignored(const char* path) {
-  // We need to find the 'file' part of the path:
-  char *filename = strrchr(path, '/');
-  if (filename == NULL) {
-    filename = strdup(path);
-    if (filename == NULL) {
-      fatal("-i: out of memory");
-    }
-  }
-  filename++; // to remove the / at the beginning
+int is_ignored(const char* path) {
+  char *path_copy = strdup(path);
+  int match = 0;
 
-  for (int i = 0; i < ignore_list_size; i++) {
+  char *filename = basename(path_copy);
+
+  for (int i = 0; i < number_of_ignores; i++) {
     if (strcmp(filename, ignore_list[i]) == 0) {
-      return true;
+      match = 1;
+      break;
     }
   }
-  return false;
+
+  free(path_copy);
+
+  return match;
 }
 
 
@@ -781,7 +780,7 @@ int main(int argc, char **argv) {
       case 'f': o_followsymlinks = 1; break;
       case 'h': o_ignorehardlinkeduplictes = 1; break;
       case 'p': parse_range(optarg); break;
-      case 'i': parse_ignorelist(optarg); break;
+      case 'i': parse_ignore_item(optarg); break;
       case 'm': {
         int64_t val = parse_size(optarg);
         o_max_file_size = (size_t) val;
