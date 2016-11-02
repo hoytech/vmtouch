@@ -620,6 +620,9 @@ bool is_ignored(const char* path) {
   char *filename = strrchr(path, '/');
   if (filename == NULL) {
     filename = strdup(path);
+    if (filename == NULL) {
+      fatal("-i: out of memory");
+    }
   }
   filename++; // to remove the / at the beginning
 
