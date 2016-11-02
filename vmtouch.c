@@ -83,6 +83,7 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <math.h>
 #include <search.h>
 #include <libgen.h>
+#include <fnmatch.h>
 
 #if defined(__linux__)
 // Used to find size of block devices
@@ -158,7 +159,7 @@ void usage() {
   printf("  -p <range> use the specified portion instead of the entire file\n");
   printf("  -f follow symbolic links\n");
   printf("  -h also count hardlinked copies\n");
-  printf("  -i ignores files and directories with this name\n");
+  printf("  -i <pattern> ignores files and directories that match this pattern\n");
   printf("  -w wait until all pages are locked (only useful together with -d)\n");
   printf("  -v verbose\n");
   printf("  -q quiet\n");
@@ -622,7 +623,7 @@ int is_ignored(const char* path) {
   char *filename = basename(path_copy);
 
   for (int i = 0; i < number_of_ignores; i++) {
-    if (strcmp(filename, ignore_list[i]) == 0) {
+    if (fnmatch(ignore_list[i], filename, 0) == 0) {
       match = 1;
       break;
     }
