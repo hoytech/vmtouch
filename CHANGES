@@ -1,5 +1,7 @@
-  * -i mode which lets you ignore entire files and directories
+  * -i feature which lets you ignore entire files and directories
     (Thanks Etienne Bruines)
+  * -I feature which lets you only process filenames matching
+    certain patterns.
 
 1.1.0    2016-08-08
   * Better error checking for extremely large values to command

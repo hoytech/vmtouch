@@ -42,6 +42,7 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define CHART_UPDATE_INTERVAL 0.1
 #define MAX_CRAWL_DEPTH 1024
 #define MAX_NUMBER_OF_IGNORES 1024
+#define MAX_NUMBER_OF_FILENAME_FILTERS 1024
 #define MAX_FILENAME_LENGTH 1024
 
 #if defined(__linux__) || (defined(__hpux) && !defined(__LP64__))
@@ -131,12 +132,18 @@ int o_followsymlinks=0;
 int o_ignorehardlinkeduplictes=0;
 size_t o_max_file_size=SIZE_MAX;
 int o_wait=0;
+
+
 char *ignore_list[MAX_NUMBER_OF_IGNORES];
+char *filename_filter_list[MAX_NUMBER_OF_FILENAME_FILTERS];
 int number_of_ignores=0;
+int number_of_filename_filters=0;
+
 
 int exit_pipe[2];
 
 int daemon_pid;
+
 
 void send_exit_signal(char code) {
   if (daemon_pid == 0 && o_wait) {
@@ -160,6 +167,7 @@ void usage() {
   printf("  -f follow symbolic links\n");
   printf("  -h also count hardlinked copies\n");
   printf("  -i <pattern> ignores files and directories that match this pattern\n");
+  printf("  -I <pattern> only process files that match this pattern\n");
   printf("  -w wait until all pages are locked (only useful together with -d)\n");
   printf("  -v verbose\n");
   printf("  -q quiet\n");
@@ -335,26 +343,45 @@ void parse_range(char *inp) {
   }
 }
 
+
 void parse_ignore_item(char *inp) {
   if (inp == NULL) {
     return;
   }
 
-  int len = strlen(inp);
-
-  if (len > MAX_FILENAME_LENGTH) {
-    fatal("long filename in ignore-list: %s", inp);
+  if (strlen(inp) > MAX_FILENAME_LENGTH) {
+    fatal("too long pattern provided to -i: %s", inp);
     return;
   }
 
   if (number_of_ignores >= MAX_NUMBER_OF_IGNORES) {
-    fatal("ignore-list only supports up to %d entries", MAX_NUMBER_OF_IGNORES);
+    fatal("too many patterns passed to -i. Max is %d", MAX_NUMBER_OF_IGNORES);
     return;
   }
 
   ignore_list[number_of_ignores] = strdup(inp);
   number_of_ignores++;
 }
+
+void parse_filename_filter_item(char *inp) {
+  if (inp == NULL) {
+    return;
+  }
+
+  if (strlen(inp) > MAX_FILENAME_LENGTH) {
+    fatal("too long pattern provided to -I: %s", inp);
+    return;
+  }
+
+  if (number_of_filename_filters >= MAX_NUMBER_OF_FILENAME_FILTERS) {
+    fatal("too many patterns passed to -I. Max is %d", MAX_NUMBER_OF_FILENAME_FILTERS);
+    return;
+  }
+
+  filename_filter_list[number_of_filename_filters] = strdup(inp);
+  number_of_filename_filters++;
+}
+
 
 int aligned_p(void *p) {
   return 0 == ((long)p & (pagesize-1));
@@ -617,8 +644,13 @@ static inline void add_object (struct stat *st)
 
 
 int is_ignored(const char* path) {
-  char *path_copy = strdup(path);
-  int match = 0;
+  char *path_copy;
+  int match;
+
+  if (!number_of_ignores) return 0;
+
+  path_copy = strdup(path);
+  match = 0;
 
   char *filename = basename(path_copy);
 
@@ -630,9 +662,32 @@ int is_ignored(const char* path) {
   }
 
   free(path_copy);
-
   return match;
 }
+
+
+int is_filename_filtered(const char* path) {
+  char *path_copy;
+  int match;
+
+  if (!number_of_filename_filters) return 1;
+
+  path_copy = strdup(path);
+  match = 0;
+
+  char *filename = basename(path_copy);
+
+  for (int i = 0; i < number_of_filename_filters; i++) {
+    if (fnmatch(filename_filter_list[i], filename, 0) == 0) {
+      match = 1;
+      break;
+    }
+  }
+
+  free(path_copy);
+  return match;
+}
+
 
 
 // return true only if the device and inode information has not been added before
@@ -739,8 +794,10 @@ void vmtouch_crawl(char *path) {
       warning("not following symbolic link %s", path);
       return;
     } else if (S_ISREG(sb.st_mode) || S_ISBLK(sb.st_mode)) {
-      total_files++;
-      vmtouch_file(path);
+      if (is_filename_filtered(path)) {
+        total_files++;
+        vmtouch_file(path);
+      }
     } else {
       warning("skipping non-regular file: %s", path);
     }
@@ -766,7 +823,7 @@ int main(int argc, char **argv) {
 
   pagesize = sysconf(_SC_PAGESIZE);
 
-  while((ch = getopt(argc, argv,"tevqlLdfhi:p:b:m:w")) != -1) {
+  while((ch = getopt(argc, argv,"tevqlLdfhi:I:p:b:m:w")) != -1) {
     switch(ch) {
       case '?': usage(); break;
       case 't': o_touch = 1; break;
@@ -782,6 +839,7 @@ int main(int argc, char **argv) {
       case 'h': o_ignorehardlinkeduplictes = 1; break;
       case 'p': parse_range(optarg); break;
       case 'i': parse_ignore_item(optarg); break;
+      case 'I': parse_filename_filter_item(optarg); break;
       case 'm': {
         int64_t val = parse_size(optarg);
         o_max_file_size = (size_t) val;
