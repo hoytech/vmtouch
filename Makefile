@@ -3,7 +3,7 @@ BINDIR?=	$(PREFIX)/bin
 MANDIR?=	$(PREFIX)/man/man8
 
 CC?=		cc
-CFLAGS+=	-Wall -O2 -g
+CFLAGS+=	-Wall -O2 -g -std=c99
 
 all: vmtouch vmtouch.8
 
