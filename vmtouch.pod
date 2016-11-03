@@ -68,6 +68,14 @@ Can be specified multiple times. Ignores files and directories that match any of
 
 Can be specified multiple times. Only processes filenames matching one or more of the provided patterns. The pattern may include wildcards (remember to escape them from your shell). Example: vmtouch -I '*.c' -I '*.h' .
 
+=item -o
+
+Output mode. While crawling, it only prints paths when it contains pages in memory. Useful together with C<-r>. Example: vmtouch -o . > file_list.txt
+
+=item -r <filename>
+
+Read mode. It treats every line in the file as a pattern for -I. Useful together with C<-o>. Example: vmtouch -r  file_list.txt -t .
+
 =item -v
 
 Verbose mode. While crawling, print out every file being processed along with its total number of pages and the number of its pages that are currently resident in memory to standard output.

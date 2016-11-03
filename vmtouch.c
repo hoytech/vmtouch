@@ -42,7 +42,7 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define CHART_UPDATE_INTERVAL 0.1
 #define MAX_CRAWL_DEPTH 1024
 #define MAX_NUMBER_OF_IGNORES 1024
-#define MAX_NUMBER_OF_FILENAME_FILTERS 1024
+#define MAX_NUMBER_OF_FILENAME_FILTERS 1048576
 #define MAX_FILENAME_LENGTH 1024
 
 #if defined(__linux__) || (defined(__hpux) && !defined(__LP64__))
@@ -68,6 +68,7 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ctype.h>
 #include <stdarg.h>
 #include <stdint.h>
+#include <stdbool.h>
 #include <time.h>
 #include <sys/select.h>
 #include <sys/types.h>
@@ -129,6 +130,8 @@ int o_lock=0;
 int o_lockall=0;
 int o_daemon=0;
 int o_followsymlinks=0;
+int o_output=0;
+int o_read=0;
 int o_ignorehardlinkeduplictes=0;
 size_t o_max_file_size=SIZE_MAX;
 int o_wait=0;
@@ -170,6 +173,8 @@ void usage() {
   printf("  -I <pattern> only process files that match this pattern\n");
   printf("  -w wait until all pages are locked (only useful together with -d)\n");
   printf("  -v verbose\n");
+  printf("  -o outputs all filenames that have one or more pages in memory\n");
+  printf("  -r <filename> treats every line in the file as an argument to -I\n");
   printf("  -q quiet\n");
   exit(1);
 }
@@ -195,7 +200,7 @@ static void warning(const char *fmt, ...) {
   vsnprintf(buf, sizeof(buf), fmt, ap);
   va_end(ap);
 
-  if (!o_quiet) fprintf(stderr, "vmtouch: WARNING: %s\n", buf);
+  if (!o_quiet && !o_output) fprintf(stderr, "vmtouch: WARNING: %s\n", buf);
 }
 
 static void reopen_all() {
@@ -382,6 +387,29 @@ void parse_filename_filter_item(char *inp) {
   number_of_filename_filters++;
 }
 
+void parse_filename_filter_file(char *inp) {
+  if (inp == NULL) {
+    return;
+  }
+
+  FILE *fp;
+  char * line = NULL;
+  size_t len = 0;
+  ssize_t read;
+
+  fp = fopen(inp, "r");
+  if (fp == NULL) {
+    return;
+  }
+
+  while ((read = getline(&line, &len, fp)) != -1) {
+    line[strcspn(line, "\r\n")] = 0;
+    parse_filename_filter_item(line);
+  }
+
+  fclose(fp);
+  free(line);
+}
 
 int aligned_p(void *p) {
   return 0 == ((long)p & (pagesize-1));
@@ -428,7 +456,7 @@ void print_page_residency_chart(FILE *out, char *mincore_array, int64_t pages_in
 
   if (pages_in_file <= RESIDENCY_CHART_WIDTH) pages_per_char = 1;
   else pages_per_char = (pages_in_file / RESIDENCY_CHART_WIDTH) + 1;
-
+ 
   fprintf(out, "\r[");
 
   for (i=0; i<pages_in_file; i++) {
@@ -458,6 +486,27 @@ void print_page_residency_chart(FILE *out, char *mincore_array, int64_t pages_in
 }
 
 
+bool is_resident(char *mincore_array, int64_t pages_in_file) {
+  int64_t pages_in_core=0;
+  int64_t pages_per_char;
+  int64_t i,j=0,curr=0;
+
+  if (pages_in_file <= RESIDENCY_CHART_WIDTH) pages_per_char = 1;
+  else pages_per_char = (pages_in_file / RESIDENCY_CHART_WIDTH) + 1;
+
+  for (i=0; i<pages_in_file; i++) {
+    if (is_mincore_page_resident(mincore_array[i])) {
+      curr++;
+      pages_in_core++;
+    }
+    j++;
+    if (j == pages_per_char) {
+      j = curr = 0;
+    }
+  }
+
+  return pages_in_core > 0;
+}
 
 
 
@@ -597,6 +646,10 @@ void vmtouch_file(char *path) {
       printf("\n");
     }
 
+    if (o_output) {
+      if (is_resident(mincore_array, pages_in_range)) printf("%s\n", path);
+    }
+
     free(mincore_array);
   }
 
@@ -678,7 +731,7 @@ int is_filename_filtered(const char* path) {
   char *filename = basename(path_copy);
 
   for (int i = 0; i < number_of_filename_filters; i++) {
-    if (fnmatch(filename_filter_list[i], filename, 0) == 0) {
+    if (fnmatch(filename_filter_list[i], filename, 0) == 0 || fnmatch(filename_filter_list[i], path_copy, 0) == 0)  {
       match = 1;
       break;
     }
@@ -823,7 +876,7 @@ int main(int argc, char **argv) {
 
   pagesize = sysconf(_SC_PAGESIZE);
 
-  while((ch = getopt(argc, argv,"tevqlLdfhi:I:p:b:m:w")) != -1) {
+  while((ch = getopt(argc, argv,"tevqlLdfhor:i:I:p:b:m:w")) != -1) {
     switch(ch) {
       case '?': usage(); break;
       case 't': o_touch = 1; break;
@@ -837,8 +890,10 @@ int main(int argc, char **argv) {
       case 'd': o_daemon = 1; break;
       case 'f': o_followsymlinks = 1; break;
       case 'h': o_ignorehardlinkeduplictes = 1; break;
+      case 'o': o_output = 1; break;
       case 'p': parse_range(optarg); break;
       case 'i': parse_ignore_item(optarg); break;
+      case 'r': parse_filename_filter_file(optarg); break;
       case 'I': parse_filename_filter_item(optarg); break;
       case 'm': {
         int64_t val = parse_size(optarg);
@@ -904,7 +959,7 @@ int main(int argc, char **argv) {
     exit(0);
   }
 
-  if (!o_quiet) {
+  if (!o_quiet && !o_output) {
     if (o_verbose) printf("\n");
     printf("           Files: %" PRId64 "\n", total_files);
     printf("     Directories: %" PRId64 "\n", total_dirs);
