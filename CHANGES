@@ -1,7 +1,10 @@
+1.2.0    2016-12-01
   * -i feature which lets you ignore entire files and directories
     (Thanks Etienne Bruines)
   * -I feature which lets you only process filenames matching
     certain patterns.
+  * Both -i and -I support wildcards
+  * Specify C99 standard during compile (Thanks ecebuzz)
 
 1.1.0    2016-08-08
   * Better error checking for extremely large values to command
