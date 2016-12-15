@@ -482,6 +482,13 @@ void vmtouch_file(char *path) {
 
   fd = open(path, open_flags, 0);
 
+#if defined(O_NOATIME)
+  if (fd == -1 && errno == EPERM) {
+    open_flags &= ~O_NOATIME;
+    fd = open(path, open_flags, 0);
+  }
+#endif
+
   if (fd == -1) {
     if (errno == ENFILE || errno == EMFILE) {
       increment_nofile_rlimit();
