@@ -18,3 +18,7 @@
     * Try opening large mappings with MAP_HUGETLB on linux 2.6.32+
     * From Dennis (Apr 2012):
       "Additionally you might want to use MAP_NORESERVE for the mmap, this seems to speed things a bit up for multiple huge files."
+
+* Windows support some day?
+  * https://msdn.microsoft.com/en-us/library/hh780543(v=vs.85).aspx
+  * https://blogs.msdn.microsoft.com/oldnewthing/20170113-00/?p=95185
