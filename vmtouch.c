@@ -169,10 +169,10 @@ void usage() {
   printf("  -h also count hardlinked copies\n");
   printf("  -i <pattern> ignores files and directories that match this pattern\n");
   printf("  -I <pattern> only process files that match this pattern\n");
+  printf("  -b <list file> get files or directories from the list file\n");
   printf("  -w wait until all pages are locked (only useful together with -d)\n");
   printf("  -v verbose\n");
   printf("  -q quiet\n");
-  printf("  -b <list file> get files or directoies from the list file\n");
   exit(1);
 }
 
@@ -813,9 +813,7 @@ void vmtouch_crawl(char *path) {
   }
 }
 
-static void
-vmtouch_batch_crawl(const char *path)
-{
+static void vmtouch_batch_crawl(const char *path) {
   FILE *f;
   char *line = NULL;
   size_t len = 0;
