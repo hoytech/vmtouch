@@ -132,6 +132,7 @@ int o_followsymlinks=0;
 int o_ignorehardlinkeduplictes=0;
 size_t o_max_file_size=SIZE_MAX;
 int o_wait=0;
+static char *o_batch = NULL;
 
 
 char *ignore_list[MAX_NUMBER_OF_IGNORES];
@@ -171,6 +172,7 @@ void usage() {
   printf("  -w wait until all pages are locked (only useful together with -d)\n");
   printf("  -v verbose\n");
   printf("  -q quiet\n");
+  printf("  -b <list file> get files or directoies from the list file\n");
   exit(1);
 }
 
@@ -811,6 +813,29 @@ void vmtouch_crawl(char *path) {
   }
 }
 
+static void
+vmtouch_batch_crawl(const char *path)
+{
+  FILE *f;
+  char *line = NULL;
+  size_t len = 0;
+  ssize_t read;
+
+  f = fopen(path, "r");
+  if (!f) {
+    warning("unable to open %s (%s), skipping", path, strerror(errno));
+    return;
+  }
+
+  while ((read = getline(&line, &len, f)) != -1) {
+    // strip the newline character
+    line[read-1] = '\0';
+    vmtouch_crawl(line);
+  }
+
+  free(line);
+  fclose(f);
+}
 
 
 
@@ -854,6 +879,7 @@ int main(int argc, char **argv) {
         break;
       }
       case 'w': o_wait = 1; break;
+      case 'b': o_batch = optarg; break;
     }
   }
 
@@ -882,7 +908,7 @@ int main(int argc, char **argv) {
 
   if (o_quiet && o_verbose) fatal("invalid option combination: -q and -v");
 
-  if (!argc) {
+  if (!argc && !o_batch) {
     printf("%s: no files or directories specified\n", prog);
     usage();
   }
@@ -891,6 +917,10 @@ int main(int argc, char **argv) {
   if (o_daemon) go_daemon();
 
   gettimeofday(&start_time, NULL);
+
+  if (o_batch) {
+      vmtouch_batch_crawl(o_batch);
+  }
 
   for (i=0; i<argc; i++) vmtouch_crawl(argv[i]);
 
