@@ -1,7 +1,7 @@
 Source: vmtouch
 Section: admin
 Priority: optional
-Maintainer: Alexey Ivanov <rbtz@yandex-team.ru>
+Maintainer: Doug Hoyte <doug@hcsw.org>
 Uploaders: Antoine Beaupré <anarcat@debian.org>
 Build-Depends: debhelper (>= 10~)
 Standards-Version: 3.9.8
