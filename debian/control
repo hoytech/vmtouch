@@ -1,6 +1,6 @@
 Source: vmtouch
 Section: admin
-Priority: extra
+Priority: optional
 Maintainer: Alexey Ivanov <rbtz@yandex-team.ru>
 Uploaders: Antoine Beaupré <anarcat@debian.org>
 Build-Depends: debhelper (>= 10~)
