@@ -4,7 +4,7 @@ Source: https://github.com/hoytech/vmtouch
 
 Files: *
 Copyright: 2012 Doug Hoyte <doug@hcsw.org>
-License: BSD
+License: BSD-3-clause
  Copyright (c) 2009-2016 Doug Hoyte and contributors. All rights reserved.
  .
  Redistribution and use in source and binary forms, with or without
