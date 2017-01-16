@@ -3,7 +3,7 @@ Section: admin
 Priority: extra
 Maintainer: Alexey Ivanov <rbtz@yandex-team.ru>
 Uploaders: Antoine Beaupré <anarcat@debian.org>
-Build-Depends: debhelper (>= 7.0.50~)
+Build-Depends: debhelper (>= 10~)
 Standards-Version: 3.9.8
 Homepage: https://hoytech.com/vmtouch/
 Vcs-Git: git://github.com/hoytech/vmtouch.git
