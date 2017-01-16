@@ -68,6 +68,14 @@ Can be specified multiple times. Ignores files and directories that match any of
 
 Can be specified multiple times. Only processes filenames matching one or more of the provided patterns. The pattern may include wildcards (remember to escape them from your shell). Example: vmtouch -I '*.c' -I '*.h' .
 
+=item -b <list file>
+
+The list of files/directories to crawl is read from the specified list file, which by default should be a newline-separated list, for example the output from the find command. If the list file is "-" then this list is read from standard input. Example: find /usr/lib -type f | vmtouch -b -
+
+=item -0
+
+If -b ("batch mode") is in effect, assume the list file is delimited with NUL bytes instead of newlines, for example the output from find -print0. This is useful in case your filenames contain newline characters themselves.
+
 =item -v
 
 Verbose mode. While crawling, print out every file being processed along with its total number of pages and the number of its pages that are currently resident in memory to standard output.
