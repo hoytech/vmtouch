@@ -8,4 +8,4 @@
 	dh $@
 
 override_dh_auto_install:
-	$(MAKE) PREFIX=$$(pwd)/debian/vmtouch/usr install
+	$(MAKE) PREFIX=$(CURDIR)/debian/vmtouch/usr install
