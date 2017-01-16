@@ -1,3 +1,19 @@
+vmtouch (1.2.1) UNRELEASED; urgency=medium
+
+  [ Doug Hoyte ]
+  * On linux, if an open fails due to EPERM then try again without O_NOATIME
+
+  [ Antoine Beaupré ]
+  * add myself to uploaders to sponsor this in debian
+  * update standards to latest, no change
+  * bump debhelper compat to 10 for multi-arch and auto dbg, no change
+  * no reason why this is in extra, it should be optional like everything else
+  * remove -dbg package, now build automatically
+  * simplify install target
+  * distribute TUNING.md as part of the documentation
+
+ -- Antoine Beaupré <anarcat@debian.org>  Sun, 15 Jan 2017 19:01:05 -0500
+
 vmtouch (0.7.3) unstable; urgency=low
 
   * Initial release

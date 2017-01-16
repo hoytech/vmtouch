@@ -7,8 +7,5 @@
 %:
 	dh $@
 
-override_dh_strip:
-	dh_strip --dbg-package=vmtouch-dbg
-
 override_dh_auto_install:
-	$(MAKE) PREFIX=$$(pwd)/debian/vmtouch/usr install
+	$(MAKE) PREFIX=$(CURDIR)/debian/vmtouch/usr MANDIR=$(CURDIR)/debian/vmtouch/usr/share/man/man8 install
