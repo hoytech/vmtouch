@@ -171,6 +171,7 @@ void usage() {
   printf("  -w wait until all pages are locked (only useful together with -d)\n");
   printf("  -v verbose\n");
   printf("  -q quiet\n");
+  printf("\nIf files arguments is a single hyphen, list will be read from STDIN\n");
   exit(1);
 }
 
@@ -817,13 +818,14 @@ void vmtouch_crawl(char *path) {
 
 
 
-
+#define MAX_STDIN_LINE_LENGTH 4096
 
 int main(int argc, char **argv) {
   int ch, i;
   char *prog = argv[0];
   struct timeval start_time;
   struct timeval end_time;
+  char line[MAX_STDIN_LINE_LENGTH];
 
   if (pipe(exit_pipe))
     fatal("pipe: %s", strerror(errno));
@@ -892,7 +894,20 @@ int main(int argc, char **argv) {
 
   gettimeofday(&start_time, NULL);
 
-  for (i=0; i<argc; i++) vmtouch_crawl(argv[i]);
+  if (argc == 1 && strcmp(argv[0], "-") == 0) {
+    while (fgets(line, MAX_STDIN_LINE_LENGTH, stdin)) {
+      // Line too long?
+      if (line[strlen(line)] != 0) {
+        warning("Skipped long line: %s\n", line);
+        continue;
+      }
+      // Terminal '\n' -> \0
+      line[strlen(line) - 1] = 0;
+      vmtouch_crawl(line);
+    }
+  } else {
+    for (i=0; i<argc; i++) vmtouch_crawl(argv[i]);
+  }
 
   gettimeofday(&end_time, NULL);
 
