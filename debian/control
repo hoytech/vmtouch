@@ -2,6 +2,7 @@ Source: vmtouch
 Section: admin
 Priority: extra
 Maintainer: Alexey Ivanov <rbtz@yandex-team.ru>
+Uploaders: Antoine Beaupré <anarcat@debian.org>
 Build-Depends: debhelper (>= 7.0.50~)
 Standards-Version: 3.9.2
 Homepage: https://hoytech.com/vmtouch/
