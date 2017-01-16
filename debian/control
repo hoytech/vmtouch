@@ -15,10 +15,3 @@ Depends: ${misc:Depends}, ${shlibs:Depends}, ${perl:Depends}
 Description: Portable file system cache diagnostics and control
  vmtouch is a tool for learning about and controlling the file system cache of
  unix and unix-like systems.
-
-Package: vmtouch-dbg
-Section: debug
-Priority: extra
-Architecture: any
-Depends: vmtouch (= ${binary:Version}), ${misc:Depends}
-Description: Debug symbols for vmtouch
