@@ -133,6 +133,7 @@ int o_ignorehardlinkeduplictes=0;
 size_t o_max_file_size=SIZE_MAX;
 int o_wait=0;
 static char *o_batch = NULL;
+int o_0_delim = 0;
 
 
 char *ignore_list[MAX_NUMBER_OF_IGNORES];
@@ -170,6 +171,7 @@ void usage() {
   printf("  -i <pattern> ignores files and directories that match this pattern\n");
   printf("  -I <pattern> only process files that match this pattern\n");
   printf("  -b <list file> get files or directories from the list file\n");
+  printf("  -0 in batch mode (-b) separate paths with NUL byte instead of newline\n");
   printf("  -w wait until all pages are locked (only useful together with -d)\n");
   printf("  -v verbose\n");
   printf("  -q quiet\n");
@@ -818,6 +820,7 @@ static void vmtouch_batch_crawl(const char *path) {
   char *line = NULL;
   size_t len = 0;
   ssize_t read;
+  int delim = o_0_delim ? '\0' : '\n';
 
   if (!strcmp(path, "-")) {
     f = stdin;
@@ -829,7 +832,7 @@ static void vmtouch_batch_crawl(const char *path) {
     }
   }
 
-  while ((read = getline(&line, &len, f)) != -1) {
+  while ((read = getdelim(&line, &len, delim, f)) != -1) {
     // strip the newline character
     line[read-1] = '\0';
     vmtouch_crawl(line);
@@ -857,7 +860,7 @@ int main(int argc, char **argv) {
 
   pagesize = sysconf(_SC_PAGESIZE);
 
-  while((ch = getopt(argc, argv,"tevqlLdfhi:I:p:b:m:w")) != -1) {
+  while((ch = getopt(argc, argv,"tevqlLdfh0i:I:p:b:m:w")) != -1) {
     switch(ch) {
       case '?': usage(); break;
       case 't': o_touch = 1; break;
@@ -882,6 +885,7 @@ int main(int argc, char **argv) {
       }
       case 'w': o_wait = 1; break;
       case 'b': o_batch = optarg; break;
+      case '0': o_0_delim = 1; break;
     }
   }
 
