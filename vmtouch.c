@@ -819,10 +819,14 @@ static void vmtouch_batch_crawl(const char *path) {
   size_t len = 0;
   ssize_t read;
 
-  f = fopen(path, "r");
-  if (!f) {
-    warning("unable to open %s (%s), skipping", path, strerror(errno));
-    return;
+  if (!strcmp(path, "-")) {
+    f = stdin;
+  } else {
+    f = fopen(path, "r");
+    if (!f) {
+      warning("unable to open %s (%s), skipping", path, strerror(errno));
+      return;
+    }
   }
 
   while ((read = getline(&line, &len, f)) != -1) {
