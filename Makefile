@@ -1,6 +1,6 @@
 PREFIX?=	/usr/local
 BINDIR?=	$(PREFIX)/bin
-MANDIR?=	$(PREFIX)/man/man8
+MANDIR?=	$(PREFIX)/share/man/man8
 
 CC?=		cc
 CFLAGS+=	-Wall -O2 -g -std=c99

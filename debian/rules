@@ -8,4 +8,4 @@
 	dh $@
 
 override_dh_auto_install:
-	$(MAKE) PREFIX=$(CURDIR)/debian/vmtouch/usr MANDIR=$(CURDIR)/debian/vmtouch/usr/share/man/man8 install
+	$(MAKE) PREFIX=$(CURDIR)/debian/vmtouch/usr install
