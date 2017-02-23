@@ -119,6 +119,8 @@ ino_t crawl_inodes[MAX_CRAWL_DEPTH];
 
 // remember all inodes (for files with inode count > 1) to find duplicates
 void *seen_inodes = NULL;
+dev_t orig_device = 0;
+int orig_device_inited = 0;
 
 
 int o_touch=0;
@@ -129,6 +131,7 @@ int o_lock=0;
 int o_lockall=0;
 int o_daemon=0;
 int o_followsymlinks=0;
+int o_singlefilesystem=0;
 int o_ignorehardlinkeduplictes=0;
 size_t o_max_file_size=SIZE_MAX;
 int o_wait=0;
@@ -167,6 +170,7 @@ void usage() {
   printf("  -m <size> max file size to touch\n");
   printf("  -p <range> use the specified portion instead of the entire file\n");
   printf("  -f follow symbolic links\n");
+  printf("  -F don't crawl different filesystems\n");
   printf("  -h also count hardlinked copies\n");
   printf("  -i <pattern> ignores files and directories that match this pattern\n");
   printf("  -I <pattern> only process files that match this pattern\n");
@@ -738,6 +742,18 @@ void vmtouch_crawl(char *path) {
       return;
     }
 
+    if (o_singlefilesystem) {
+      if (!orig_device_inited) {
+        orig_device = sb.st_dev;
+        orig_device_inited = 1;
+      } else {
+        if (sb.st_dev != orig_device) {
+          warning("not recursing into separate filesystem %s", path);
+          return;
+        }
+      }
+    }
+
     if (!o_ignorehardlinkeduplictes && sb.st_nlink > 1) {
       /*
        * For files with more than one link to it, ignore it if we already know
@@ -860,7 +876,7 @@ int main(int argc, char **argv) {
 
   pagesize = sysconf(_SC_PAGESIZE);
 
-  while((ch = getopt(argc, argv,"tevqlLdfh0i:I:p:b:m:w")) != -1) {
+  while((ch = getopt(argc, argv,"tevqlLdfFh0i:I:p:b:m:w")) != -1) {
     switch(ch) {
       case '?': usage(); break;
       case 't': o_touch = 1; break;
@@ -873,6 +889,7 @@ int main(int argc, char **argv) {
                 o_touch = 1; break;
       case 'd': o_daemon = 1; break;
       case 'f': o_followsymlinks = 1; break;
+      case 'F': o_singlefilesystem = 1; break;
       case 'h': o_ignorehardlinkeduplictes = 1; break;
       case 'p': parse_range(optarg); break;
       case 'i': parse_ignore_item(optarg); break;
