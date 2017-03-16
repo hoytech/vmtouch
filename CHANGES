@@ -1,3 +1,16 @@
+1.3.0    2017-03-16
+  * New switch: "-b <file>". This enables "batch mode" where the
+    list of files to crawl is read from the specified file
+    (Thanks Tw)
+  * New switch: "-0". When this is enabled, the files in
+    "batch mode" are separated by NUL bytes instead of newlines
+  * New switch: "-F". Prevents vmtouch from traversing separate
+    filesystems (requested by mailinglists35)
+  * Lots of updates to the debian packaging (Thanks anarcat)
+  * Use standard path for manpages (Thanks anarcat)
+  * On linux, if an open fails due to EPERM then try again
+    without O_NOATIME
+
 1.2.0    2016-12-01
   * -i feature which lets you ignore entire files and directories
     (Thanks Etienne Bruines)

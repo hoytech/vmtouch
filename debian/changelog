@@ -1,7 +1,147 @@
-vmtouch (1.2.1) UNRELEASED; urgency=medium
+vmtouch (1.3.0) unstable; urgency=medium
+
+  [ doug ]
+  * README
+  * move some comments from .c into TODO and CHANGES
+  * Patch from Marc Brooker: avoid overflowing stack when allocating array for mincore() output
+  * Patch from Federico Lucifredi: Avoid ugly NaNs in output, Mac OS X report
+  * gitignore, copyright update
+  * Full OS X support: msync(2) evicts pages on this system
+  * update
+  * watcher script
+
+  [ Alexey Ivanov ]
+  * [debian] Added debian/ dir and Makefile
+
+  [ soarpenguin ]
+  * Update vmtouch.c
+  * fix the error of *tp != '\0'
+
+  [ Nick Barkas ]
+  * change Debian arch from all to any
+  * add Debian init script with default config
+
+  [ doug ]
+  * TODO update
+  * HP-UX support from Shane Seymour (thanks!)
+  * Note HP-UX support
+  * HP-UX system notes from Shane Seymour
+  * port man page to POD format
+  * doc update
+  * bump version
+  * Deprecation notice for -p switch
+  * tested CPUs note
+  * S5 presentation: Intro to Virtual Memory
+  * Presentation update
+  * CHANGES notes, comment clean-up
+  * tagging 0.8.0
+
+  [ Kristofer Karlsson ]
+  * Add option to wait for daemon to mlock the files.
+
+  [ doug ]
+  * removing presentation since it now has its own repo
+
+  [ Carsten Otto ]
+  * ignore hardlink duplicates by default
+
+  [ doug ]
+  * Document Carsten Otto's -h switch in the man page
+  * regenerate man page
+
+  [ Emmanuel Kasper ]
+  * Enhance Makefile:  * generate manpage from build  * add manpage to install target  * add uninstall target  * remove vmtouch.8 as it is now generated in build step
+
+  [ doug ]
+  * gitignore generated man-page
+
+  [ Mikolaj Golub ]
+  * Respect CC, CFLAGS, PREFIX, BINDIR, MANDIR variable
+  * Fix "data argument not used by format string" warning.
+
+  [ Jim Garrison ]
+  * Fix to work with glibc 2.20
+
+  [ doug ]
+  * make default CFLAGS a bit more user-friendly
+  * bugfix for when trying to crawl entire filesystem
+
+  [ Luka Blaskovic ]
+  * Update debian packaging.
+
+  [ Justas Lavišius ]
+  * implement parse_range for -p
+  * provide comments for parse_range
+  * implement page mode (-p) for touch, evict and lock
+  * provide better output for touch
+  * document page mode (-p)
+  * round up offset to nearest multiple of pagesize
+  * remove unused variable pages_in_core in vmtouch_file
+  * skip files smaller than offset provided in -p
+  * Revert "provide better output for touch"
+
+  [ doug ]
+  * done by Justas -- thanks!
+  * add some links to README
+  * trailing whitespace
+  * change default max file size to SIZE_MAX
+  * releasing 1.0.1
+  * update copyright year
+  * don't install watch-vmtouch script
+  * fix dependencies in makefile, declare phony targets properly
+  * bsd support in make install
+  * proper headers in generated man-page
+  * convert readme to mark-down
+  * releasing 1.0.2
+
+  [ Patrik Modesto ]
+  * fix debian packaging after README convert
+
+  [ doug ]
+  * bump copyright year
+  * use https for vmtouch website links
+
+  [ Matthew Fernandez ]
+  * Fix: catch parsing double values that are too large.
+
+  [ doug ]
+  * Detect multiplication overflow in parse_size function
+  * support block devices
+
+  [ Justas Lavišius ]
+  * Round range lower limit down, not up (Fixes #27)
+  * Round down properly & allow 0 value in size/range
+
+  [ Ancients ]
+  * Added NO_ATIME open to prevent incrementing atime values when touching files.
+
+  [ doug ]
+  * Documentation on tuning system limits
+  * note that professional support is available via hoytech software
+  * Vladimir Kotal provided some details on the Solaris memory-locking limits
+  * Forgot to add the note about PRIV_PROC_LOCK_MEMORY
+  * make the O_NOATIME not interfere with compiling on systems that don't have this functionality
+  * avoid uninitialized variable warnings on older compilers
+  * releasing 1.1.0
+
+  [ Etienne Bruines ]
+  * Added -i option to ignore files and directories.  (#42)
 
   [ Doug Hoyte ]
+  * some minor fixups for the -i feature
+  * support wildcard matching in ignore list with fnmatch
+  * -I feature which lets you process only files matching certain patterns
+  * triage TODO a bit
+
+  [ ecebuzz ]
+  * Turn on C99 option in Makefile (#44)
+
+  [ Doug Hoyte ]
+  * releasing 1.2.0
   * On linux, if an open fails due to EPERM then try again without O_NOATIME
+
+  [ Doug ]
+  * notes for possible windows support
 
   [ Antoine Beaupré ]
   * add myself to uploaders to sponsor this in debian
@@ -11,8 +151,33 @@ vmtouch (1.2.1) UNRELEASED; urgency=medium
   * remove -dbg package, now build automatically
   * simplify install target
   * distribute TUNING.md as part of the documentation
+  * WIP: prepare 1.2.1 changelog
+  * setup gbp config for native package
+  * remove unused substitution variables in control file
+  * depend on lsb-base since we still use an init.d file
+  * use standard BSD-3-clause short name to please lintian
+  * remove boilerplate comment in copyright file
+  * follow FHS for manpages location
+  * remove unnused sbin dir
+  * switch maintainership away from the original packager to upstream
 
- -- Antoine Beaupré <anarcat@debian.org>  Sun, 15 Jan 2017 19:01:05 -0500
+  [ Tw ]
+  * support adding files by file list
+
+  [ Doug ]
+  * typo/formatting
+  * support "-b -" to read file list from stdin
+  * support -0 in -b "batch mode"
+  * document -b and -0 flags in manual
+
+  [ Doug Hoyte ]
+  * Use standard path for manpages (thanks anarcat)
+  * -F option to avoid recursing into separate filesystems (requested by mailinglists35)
+
+  [ doug ]
+  * releasing 1.3.0
+
+ -- doug <doug@mercury.(none)>  Thu, 16 Mar 2017 11:30:27 -0400
 
 vmtouch (0.7.3) unstable; urgency=low
 
