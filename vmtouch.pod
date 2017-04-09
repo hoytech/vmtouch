@@ -60,6 +60,10 @@ Page mode. Maps the portion of the file specified by a range instead of the enti
 
 Follow symbolic links. With this option, vmtouch will descend into symbolic links that point to directories and will touch regular files pointed to by symbolic links. Symbolic link loops are detected and issue warnings.
 
+=item -F
+
+During the crawl, don't recurse into directories that have separate filesystems mounted on them. This is handy to avoid accidentally touching other filesystems that have been mounted underneath your target directory.
+
 =item -i <pattern>
 
 Can be specified multiple times. Ignores files and directories that match any of the provided patterns. The pattern may include wildcards (remember to escape them from your shell). This option stops the crawl, so can be used to ignore directories and all their contents. Example: vmtouch -i .git -i '*.bak' .
