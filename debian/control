@@ -1,9 +1,9 @@
 Source: vmtouch
 Section: admin
 Priority: optional
-Maintainer: Doug Hoyte <doug@hcsw.org>
-Uploaders: Antoine Beaupré <anarcat@debian.org>
-Build-Depends: debhelper (>= 10~)
+Maintainer: Doug Hoyte <doug@hoytech.com>
+Uploaders: Doug Hoyte <doug@hoytech.com>
+Build-Depends: debhelper (>= 9)
 Standards-Version: 3.9.8
 Homepage: https://hoytech.com/vmtouch/
 Vcs-Git: git://github.com/hoytech/vmtouch.git

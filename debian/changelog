@@ -1,3 +1,21 @@
+vmtouch (1.3.0ubuntu3) xenial; urgency=medium
+
+  * Oops put back dep
+
+ -- Doug Hoyte <doug@hoytech.com>  Sun, 16 Apr 2017 18:51:02 -0400
+
+vmtouch (1.3.0ubuntu2) xenial; urgency=medium
+
+  * Remove debhelper dep
+
+ -- Doug Hoyte <doug@hoytech.com>  Sun, 16 Apr 2017 18:40:23 -0400
+
+vmtouch (1.3.0ubuntu1) xenial; urgency=medium
+
+  * Trying ubuntu PPA release
+
+ -- Doug Hoyte <doug@hoytech.com>  Sun, 16 Apr 2017 18:31:15 -0400
+
 vmtouch (1.3.0) unstable; urgency=medium
 
   [ doug ]
@@ -177,7 +195,7 @@ vmtouch (1.3.0) unstable; urgency=medium
   [ doug ]
   * releasing 1.3.0
 
- -- doug <doug@mercury.(none)>  Thu, 16 Mar 2017 11:30:27 -0400
+ -- Doug Hoyte <doug@hoytech.com>  Thu, 16 Mar 2017 11:30:27 -0400
 
 vmtouch (0.7.3) unstable; urgency=low
 
