@@ -34,4 +34,4 @@ Please <a href="mailto:doug@hoytech.com?subject=vmtouch support">contact Doug Ho
 
 ### Authors
 
-vmtouch is copyright (c) 2009-2016 Doug Hoyte and contributors.
+vmtouch is copyright (c) 2009-2017 Doug Hoyte and contributors.
