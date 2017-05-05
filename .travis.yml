@@ -1,8 +1,16 @@
 language: c
 sudo: false
 
-script: make
+addons:
+  apt:
+    sources: &sources
+      - sourceline: 'deb https://logp.s3.amazonaws.com/ amd64/'
+        key_url: 'https://logp.s3.amazonaws.com/logp-gpg-key.public'
+    packages:
+      - logp
 
 compiler:
   - clang
   - gcc
+
+script: logp run make
