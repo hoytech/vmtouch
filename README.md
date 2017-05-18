@@ -1,5 +1,8 @@
 # vmtouch - the Virtual Memory Toucher
 
+[![Build Status](https://travis-ci.org/hoytech/vmtouch.svg?branch=master)](https://travis-ci.org/hoytech/vmtouch)
+
+
 ## Portable file system cache diagnostics and control
 
 
