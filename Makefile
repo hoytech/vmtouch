@@ -10,7 +10,7 @@ all: vmtouch vmtouch.8
 .PHONY: all install clean uninstall
 
 vmtouch: vmtouch.c
-	${CC} ${CFLAGS} -o vmtouch vmtouch.c
+	${CC} ${CFLAGS} ${LDFLAGS} -o vmtouch vmtouch.c
 
 vmtouch.8: vmtouch.pod
 	pod2man --section 8 --center "System Manager's Manual" --release " " vmtouch.pod > vmtouch.8
