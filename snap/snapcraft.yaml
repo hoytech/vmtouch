@@ -1,0 +1,20 @@
+name: vmtouch
+version: git
+summary: Portable file system cache diagnostics and control
+description: |
+  vmtouch is a tool for learning about and controlling the file system cache of
+  unix and unix-like systems. It is BSD licensed so you can basically do
+  whatever you want with it..
+
+grade: stable
+confinement: classic
+
+apps:
+  vmtouch:
+    command: usr/local/bin/vmtouch
+
+parts:
+  vmtouch:
+    plugin: make
+    source: https://github.com/hoytech/vmtouch.git
+    source-type: git
