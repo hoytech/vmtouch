@@ -179,7 +179,7 @@ void usage() {
   printf("  -b <list file> get files or directories from the list file\n");
   printf("  -0 in batch mode (-b) separate paths with NUL byte instead of newline\n");
   printf("  -w wait until all pages are locked (only useful together with -d)\n");
-  printf("  -P <pidfile> write a pidfile (only working together with -l or -L)\n");
+  printf("  -P <pidfile> write a pidfile (only useful together with -l or -L)\n");
   printf("  -v verbose\n");
   printf("  -q quiet\n");
   exit(1);
@@ -876,7 +876,7 @@ static void write_pidfile() {
 
   f = fopen(o_pidfile, "w");
   if (!f) {
-    warning("unable to open %s (%s), skipping", o_pidfile, strerror(errno));
+    warning("unable to open pidfile %s (%s), skipping", o_pidfile, strerror(errno));
     return;
   }
 
@@ -885,7 +885,7 @@ static void write_pidfile() {
   fclose(f);
 
   if (wrote < 0) {
-    warning("unable to write pidfile to %s (%s), delete it", o_pidfile, strerror(errno));
+    warning("unable to write to pidfile %s (%s), deleting it", o_pidfile, strerror(errno));
     remove_pidfile();
   }
 }
@@ -976,7 +976,7 @@ int main(int argc, char **argv) {
 
   if (o_quiet && o_verbose) fatal("invalid option combination: -q and -v");
 
-  if (o_pidfile && (!o_lock && !o_lockall)) fatal("pidfile will only be created when -l or -L is specified");
+  if (o_pidfile && (!o_lock && !o_lockall)) fatal("pidfile can only be created when -l or -L is specified");
 
   if (!argc && !o_batch) {
     printf("%s: no files or directories specified\n", prog);

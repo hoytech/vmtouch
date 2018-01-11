@@ -82,7 +82,7 @@ If -b ("batch mode") is in effect, assume the list file is delimited with NUL by
 
 =item -P <pidfile>
 
-Create a PID file. This option is only working with -l or -L. The PID file will be automatically deleted when vmtouch got termination signals (SIGINT, SIGTERM, SIGQUIT) and leave.
+Create a PID file. This option can only be provided in combination with -l or -L. The PID file will be automatically deleted when vmtouch gets a termination signal (SIGINT, SIGTERM, SIGQUIT).
 
 =item -v
 
