@@ -80,6 +80,10 @@ The list of files/directories to crawl is read from the specified list file, whi
 
 If -b ("batch mode") is in effect, assume the list file is delimited with NUL bytes instead of newlines, for example the output from find -print0. This is useful in case your filenames contain newline characters themselves.
 
+=item -P <pidfile>
+
+Create a PID file. This option is only working with -l or -L. The PID file will be automatically deleted when vmtouch got termination signals (SIGINT, SIGTERM, SIGQUIT) and leave.
+
 =item -v
 
 Verbose mode. While crawling, print out every file being processed along with its total number of pages and the number of its pages that are currently resident in memory to standard output.
