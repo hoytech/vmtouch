@@ -69,6 +69,7 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <stdarg.h>
 #include <stdint.h>
 #include <time.h>
+#include <signal.h>
 #include <sys/select.h>
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -136,6 +137,7 @@ int o_ignorehardlinkeduplictes=0;
 size_t o_max_file_size=SIZE_MAX;
 int o_wait=0;
 static char *o_batch = NULL;
+static char *o_pidfile = NULL;
 int o_0_delim = 0;
 
 
@@ -177,6 +179,7 @@ void usage() {
   printf("  -b <list file> get files or directories from the list file\n");
   printf("  -0 in batch mode (-b) separate paths with NUL byte instead of newline\n");
   printf("  -w wait until all pages are locked (only useful together with -d)\n");
+  printf("  -P <pidfile> write a pidfile (only working together with -l or -L)\n");
   printf("  -v verbose\n");
   printf("  -q quiet\n");
   exit(1);
@@ -858,7 +861,48 @@ static void vmtouch_batch_crawl(const char *path) {
   fclose(f);
 }
 
+static void remove_pidfile() {
+  int res = 0;
 
+  res = unlink(o_pidfile);
+  if (res < 0 && errno != ENOENT) {
+    warning("unable to remove pidfile %s (%s)", o_pidfile, strerror(errno));
+  }
+}
+
+static void write_pidfile() {
+  FILE *f = NULL;
+  size_t wrote = 0;
+
+  f = fopen(o_pidfile, "w");
+  if (!f) {
+    warning("unable to open %s (%s), skipping", o_pidfile, strerror(errno));
+    return;
+  }
+
+  wrote = fprintf(f, "%d\n", getpid());
+
+  fclose(f);
+
+  if (wrote < 0) {
+    warning("unable to write pidfile to %s (%s), delete it", o_pidfile, strerror(errno));
+    remove_pidfile();
+  }
+}
+
+static void signal_handler_clear_pidfile(int signal_num) {
+  remove_pidfile();
+}
+
+static void register_signals_for_pidfile() {
+  struct sigaction sa = {0};
+  sa.sa_handler = signal_handler_clear_pidfile;
+  if (sigaction(SIGINT, &sa, NULL) < 0 ||
+      sigaction(SIGTERM, &sa, NULL) < 0 ||
+      sigaction(SIGQUIT, &sa, NULL) < 0) {
+    warning("unable to register signals for pidfile (%s), skipping", strerror(errno));
+  }
+}
 
 
 
@@ -876,7 +920,7 @@ int main(int argc, char **argv) {
 
   pagesize = sysconf(_SC_PAGESIZE);
 
-  while((ch = getopt(argc, argv,"tevqlLdfFh0i:I:p:b:m:w")) != -1) {
+  while((ch = getopt(argc, argv, "tevqlLdfFh0i:I:p:b:m:P:w")) != -1) {
     switch(ch) {
       case '?': usage(); break;
       case 't': o_touch = 1; break;
@@ -903,6 +947,7 @@ int main(int argc, char **argv) {
       case 'w': o_wait = 1; break;
       case 'b': o_batch = optarg; break;
       case '0': o_0_delim = 1; break;
+      case 'P': o_pidfile = optarg; break;
     }
   }
 
@@ -931,6 +976,8 @@ int main(int argc, char **argv) {
 
   if (o_quiet && o_verbose) fatal("invalid option combination: -q and -v");
 
+  if (o_pidfile && (!o_lock && !o_lockall)) fatal("pidfile will only be created when -l or -L is specified");
+
   if (!argc && !o_batch) {
     printf("%s: no files or directories specified\n", prog);
     usage();
@@ -953,6 +1000,11 @@ int main(int argc, char **argv) {
     if (o_lockall) {
       if (mlockall(MCL_CURRENT))
         fatal("unable to mlockall (%s)", strerror(errno));
+    }
+
+    if (o_pidfile) {
+      register_signals_for_pidfile();
+      write_pidfile();
     }
 
     if (!o_quiet) printf("LOCKED %" PRId64 " pages (%s)\n", total_pages, pretty_print_size(total_pages*pagesize));
