@@ -663,7 +663,7 @@ static inline void add_object (struct stat *st)
 
 int is_ignored(const char* path) {
   char *path_copy;
-  int match;
+  int match, i;
 
   if (!number_of_ignores) return 0;
 
@@ -672,7 +672,7 @@ int is_ignored(const char* path) {
 
   char *filename = basename(path_copy);
 
-  for (int i = 0; i < number_of_ignores; i++) {
+  for (i = 0; i < number_of_ignores; i++) {
     if (fnmatch(ignore_list[i], filename, 0) == 0) {
       match = 1;
       break;
@@ -686,7 +686,7 @@ int is_ignored(const char* path) {
 
 int is_filename_filtered(const char* path) {
   char *path_copy;
-  int match;
+  int match, i;
 
   if (!number_of_filename_filters) return 1;
 
@@ -695,7 +695,7 @@ int is_filename_filtered(const char* path) {
 
   char *filename = basename(path_copy);
 
-  for (int i = 0; i < number_of_filename_filters; i++) {
+  for (i = 0; i < number_of_filename_filters; i++) {
     if (fnmatch(filename_filter_list[i], filename, 0) == 0) {
       match = 1;
       break;
