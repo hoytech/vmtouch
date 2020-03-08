@@ -496,7 +496,7 @@ static int can_do_mincore(struct stat *st) {
   }
 
   uid_t uid = getuid();
-  return (st->st_uid == uid && (st->st_mode&S_IWUSR)) ||
+  return st->st_uid == uid ||
          (st->st_gid == getgid() && (st->st_mode&S_IWGRP)) ||
          (st->st_mode&S_IWOTH) ||
          uid == 0;
