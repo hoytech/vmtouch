@@ -491,7 +491,7 @@ static int can_do_mincore(struct stat *st) {
       }
     }
     // kernal < 5.2
-    if (ver[0]<5 && ver[1]<2)
+    if (ver[0]<5||ver[1]<2)
       return 1;
   }
 
