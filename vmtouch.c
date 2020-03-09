@@ -91,6 +91,8 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // Used to find size of block devices
 #include <sys/ioctl.h>
 #include <sys/mount.h>
+// Used to check kernal version to know if mincore reports correctly
+#include <sys/utsname.h>
 #endif
 
 /*
@@ -469,7 +471,37 @@ void print_page_residency_chart(FILE *out, char *mincore_array, int64_t pages_in
 }
 
 
+#ifdef __linux__
+// check if mincore will report correctly, due side-channel vulnerabilities
+// from 5.2+ it only reports if process has write permission to the file
+// https://lwn.net/Articles/778437/
+static int can_do_mincore(struct stat *st) {
 
+  struct utsname utsinfo;
+  if (uname(&utsinfo) == 0) {
+    unsigned long ver[16];
+    int i=0;
+    char *p = utsinfo.release;
+    while (*p) {
+      if (isdigit(*p)) {
+          ver[i] = strtol(p, &p, 10);
+          i++;
+      } else {
+          p++;
+      }
+    }
+    // kernal < 5.2
+    if (ver[0]<5||ver[1]<2)
+      return 1;
+  }
+
+  uid_t uid = getuid();
+  return st->st_uid == uid ||
+         (st->st_gid == getgid() && (st->st_mode&S_IWGRP)) ||
+         (st->st_mode&S_IWOTH) ||
+         uid == 0;
+}
+#endif
 
 
 void vmtouch_file(char *path) {
@@ -590,6 +622,11 @@ void vmtouch_file(char *path) {
 
     if (o_verbose) {
       printf("%s\n", path);
+#ifdef __linux__
+      if (!can_do_mincore(&sb)) {
+        warning("Process does not have write permission, residency chart will not be accurate");
+      }
+#endif
       last_chart_print_time = gettimeofday_as_double();
       print_page_residency_chart(stdout, mincore_array, pages_in_range);
     }
