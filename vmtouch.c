@@ -141,6 +141,7 @@ int o_wait=0;
 static char *o_batch = NULL;
 static char *o_pidfile = NULL;
 int o_0_delim = 0;
+long o_max_touched_page_count_per_sec=0;
 
 
 char *ignore_list[MAX_NUMBER_OF_IGNORES];
@@ -153,6 +154,8 @@ int exit_pipe[2];
 
 int daemon_pid;
 
+long touched_page_count_per_sec=0;
+struct timeval st;
 
 void send_exit_signal(char code) {
   if (daemon_pid == 0 && o_wait) {
@@ -172,6 +175,7 @@ void usage() {
   printf("  -L lock pages in physical memory with mlockall(2)\n");
   printf("  -d daemon mode\n");
   printf("  -m <size> max file size to touch\n");
+  printf("  -s <size> max size to touch for 1 second\n");
   printf("  -p <range> use the specified portion instead of the entire file\n");
   printf("  -f follow symbolic links\n");
   printf("  -F don't crawl different filesystems\n");
@@ -632,9 +636,28 @@ void vmtouch_file(char *path) {
     }
 
     if (o_touch) {
+      struct timeval et;
+
       for (i=0; i<pages_in_range; i++) {
         junk_counter += ((char*)mem)[i*pagesize];
-        mincore_array[i] = 1;
+        if (mincore_array[i] != 1) {
+          mincore_array[i] = 1;
+          ++touched_page_count_per_sec;
+        }
+
+        if (o_max_touched_page_count_per_sec > 0 && touched_page_count_per_sec == o_max_touched_page_count_per_sec) {
+          long time_diff_usec;
+          gettimeofday(&et, NULL);
+
+          time_diff_usec = (et.tv_sec - st.tv_sec) * 1000000L + (et.tv_usec - st.tv_usec);
+          if (time_diff_usec < 1000000L) {
+            usleep(1000000L - time_diff_usec);
+          }
+
+          st.tv_sec = et.tv_sec;
+          st.tv_usec = et.tv_usec;
+          touched_page_count_per_sec = 0;
+        }
 
         if (o_verbose) {
           temp_time = gettimeofday_as_double();
@@ -957,7 +980,7 @@ int main(int argc, char **argv) {
 
   pagesize = sysconf(_SC_PAGESIZE);
 
-  while((ch = getopt(argc, argv, "tevqlLdfFh0i:I:p:b:m:P:w")) != -1) {
+  while((ch = getopt(argc, argv, "tevqlLdfFh0i:I:p:b:m:s:P:w")) != -1) {
     switch(ch) {
       case '?': usage(); break;
       case 't': o_touch = 1; break;
@@ -979,6 +1002,16 @@ int main(int argc, char **argv) {
         int64_t val = parse_size(optarg);
         o_max_file_size = (size_t) val;
         if (val != (int64_t) o_max_file_size) fatal("value for -m too big to fit in a size_t");
+        break;
+      }
+      case 's': {
+        int64_t val = parse_size(optarg);
+        size_t s = (size_t) val;
+        if (val != (int64_t) s) fatal("value for -s too big to fit in a size_t");
+        o_max_touched_page_count_per_sec = s / pagesize;
+        if (val > 0 && o_max_touched_page_count_per_sec == 0) {
+          o_max_touched_page_count_per_sec = 1;
+        }
         break;
       }
       case 'w': o_wait = 1; break;
@@ -1024,6 +1057,7 @@ int main(int argc, char **argv) {
   if (o_daemon) go_daemon();
 
   gettimeofday(&start_time, NULL);
+  gettimeofday(&st, NULL);
 
   if (o_batch) {
       vmtouch_batch_crawl(o_batch);

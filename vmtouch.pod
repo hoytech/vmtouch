@@ -52,6 +52,10 @@ Daemon mode. After performing the crawl, disassociate from the terminal and run 
 
 Maximum file size to map into virtual memory. Files that are larger than this will be skipped. Examples: 4096, 4k, 100M, 1.5G. The default is 500M.
 
+=item -s <max size to touch for 1 second>
+
+Maximum size to map into virtual memory for 1 second. Examples: 4096, 4k, 100M, 1.5G. The default is 0(unlimited).
+
 =item -p <size range> or <size>
 
 Page mode. Maps the portion of the file specified by a range instead of the entire file. Size format same as for C<-m>. Omitted range start (end) value means start (end) of file. Single <size> value is equivalent to -<size>, i.e. map the first <size> bytes. Examples: 4k-50k, 100M-2G, -5M, -.
