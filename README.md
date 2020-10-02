@@ -1,4 +1,4 @@
-# vmtouch - the Virtual Memory Toucher
+# vmtouch - an amazing project 
 
 [![Build Status](https://travis-ci.org/hoytech/vmtouch.svg?branch=master)](https://travis-ci.org/hoytech/vmtouch)
 
