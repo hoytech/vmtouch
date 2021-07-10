@@ -1064,7 +1064,7 @@ int main(int argc, char **argv) {
         strcpy(pagestr, "Evicted");
       else 
         strcpy(pagestr, "Resident");
-      printf("Files=%" PRId64 " Directories=%" PRId64 " %sPages=%" PRId64 " TotalPages=%" PRId64 " %sSize=%" PRId64 " TotalSize=%" PRId64 " %sPercent=%.3g Elapsed=%.5g", total_files, total_dirs, pagestr, total_pages_in_core, total_pages, pagestr, total_pages_in_core*pagesize, total_pages*pagesize, pagestr, 100.0*total_pages_in_core/total_pages, (end_time.tv_sec - start_time.tv_sec) + (double)(end_time.tv_usec - start_time.tv_usec)/1000000.0);
+      printf("Files=%" PRId64 " Directories=%" PRId64 " %sPages=%" PRId64 " TotalPages=%" PRId64 " %sSize=%" PRId64 " TotalSize=%" PRId64 " %sPercent=%.3g Elapsed=%.5g\n", total_files, total_dirs, pagestr, total_pages_in_core, total_pages, pagestr, total_pages_in_core*pagesize, total_pages*pagesize, pagestr, 100.0*total_pages_in_core/total_pages, (end_time.tv_sec - start_time.tv_sec) + (double)(end_time.tv_usec - start_time.tv_usec)/1000000.0);
     }
     else {
       if (o_verbose) printf("\n");
