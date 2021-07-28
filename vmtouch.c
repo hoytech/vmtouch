@@ -130,6 +130,7 @@ int o_touch=0;
 int o_evict=0;
 int o_quiet=0;
 int o_verbose=0;
+int o_keyvalue=0;
 int o_lock=0;
 int o_lockall=0;
 int o_daemon=0;
@@ -957,13 +958,14 @@ int main(int argc, char **argv) {
 
   pagesize = sysconf(_SC_PAGESIZE);
 
-  while((ch = getopt(argc, argv, "tevqlLdfFh0i:I:p:b:m:P:w")) != -1) {
+  while((ch = getopt(argc, argv, "tevqklLdfFh0i:I:p:b:m:P:w")) != -1) {
     switch(ch) {
       case '?': usage(); break;
       case 't': o_touch = 1; break;
       case 'e': o_evict = 1; break;
       case 'q': o_quiet = 1; break;
       case 'v': o_verbose++; break;
+      case 'k': o_keyvalue = 1; break;
       case 'l': o_lock = 1;
                 o_touch = 1; break;
       case 'L': o_lockall = 1;
@@ -1033,6 +1035,11 @@ int main(int argc, char **argv) {
 
   gettimeofday(&end_time, NULL);
 
+  int64_t total_pages_in_core_size = total_pages_in_core * pagesize;
+  int64_t total_pages_size         = total_pages * pagesize;
+  double  total_pages_in_core_perc = 100.0*total_pages_in_core/total_pages;
+  double  elapsed                  = (end_time.tv_sec - start_time.tv_sec) + (double)(end_time.tv_usec - start_time.tv_usec)/1000000.0;
+
   if (o_lock || o_lockall) {
     if (o_lockall) {
       if (mlockall(MCL_CURRENT))
@@ -1044,7 +1051,7 @@ int main(int argc, char **argv) {
       write_pidfile();
     }
 
-    if (!o_quiet) printf("LOCKED %" PRId64 " pages (%s)\n", total_pages, pretty_print_size(total_pages*pagesize));
+    if (!o_quiet) printf("LOCKED %" PRId64 " pages (%s)\n", total_pages, pretty_print_size(total_pages_size));
 
     if (o_wait) reopen_all();
 
@@ -1054,22 +1061,35 @@ int main(int argc, char **argv) {
   }
 
   if (!o_quiet) {
-    if (o_verbose) printf("\n");
-    printf("           Files: %" PRId64 "\n", total_files);
-    printf("     Directories: %" PRId64 "\n", total_dirs);
-    if (o_touch)
-      printf("   Touched Pages: %" PRId64 " (%s)\n", total_pages, pretty_print_size(total_pages*pagesize));
-    else if (o_evict)
-      printf("   Evicted Pages: %" PRId64 " (%s)\n", total_pages, pretty_print_size(total_pages*pagesize));
-    else {
-      printf("  Resident Pages: %" PRId64 "/%" PRId64 "  ", total_pages_in_core, total_pages);
-      printf("%s/", pretty_print_size(total_pages_in_core*pagesize));
-      printf("%s  ", pretty_print_size(total_pages*pagesize));
-      if (total_pages)
-        printf("%.3g%%", 100.0*total_pages_in_core/total_pages);
-      printf("\n");
+    if (o_keyvalue) {
+      char pagestr[9];
+      if (o_touch)
+        strcpy(pagestr, "Touched");
+      else if (o_evict)
+        strcpy(pagestr, "Evicted");
+      else 
+        strcpy(pagestr, "Resident");
+      printf("Files=%" PRId64 " Directories=%" PRId64 " %sPages=%" PRId64 " TotalPages=%" PRId64 " %sSize=%" PRId64 " TotalSize=%" PRId64 " %sPercent=%.3g Elapsed=%.5g\n", 
+        total_files, total_dirs, pagestr, total_pages_in_core, total_pages, pagestr, total_pages_in_core_size, total_pages_size, pagestr, total_pages_in_core_perc, elapsed);
     }
-    printf("         Elapsed: %.5g seconds\n", (end_time.tv_sec - start_time.tv_sec) + (double)(end_time.tv_usec - start_time.tv_usec)/1000000.0);
+    else {
+      if (o_verbose) printf("\n");
+      printf("           Files: %" PRId64 "\n", total_files);
+      printf("     Directories: %" PRId64 "\n", total_dirs);
+      if (o_touch)
+        printf("   Touched Pages: %" PRId64 " (%s)\n", total_pages, pretty_print_size(total_pages_size));
+      else if (o_evict)
+        printf("   Evicted Pages: %" PRId64 " (%s)\n", total_pages, pretty_print_size(total_pages_size));
+      else {
+        printf("  Resident Pages: %" PRId64 "/%" PRId64 "  ", total_pages_in_core, total_pages);
+        printf("%s/", pretty_print_size(total_pages_in_core_size));
+        printf("%s  ", pretty_print_size(total_pages_size));
+        if (total_pages)
+          printf("%.3g%%", total_pages_in_core_perc);
+        printf("\n");
+      }
+      printf("         Elapsed: %.5g seconds\n", elapsed);
+    }
   }
 
   return 0;
