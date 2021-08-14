@@ -130,7 +130,6 @@ int o_touch=0;
 int o_evict=0;
 int o_quiet=0;
 int o_verbose=0;
-int o_keyvalue=0;
 int o_lock=0;
 int o_lockall=0;
 int o_daemon=0;
