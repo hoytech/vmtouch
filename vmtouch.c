@@ -141,6 +141,7 @@ size_t o_max_file_size=SIZE_MAX;
 int o_wait=0;
 static char *o_batch = NULL;
 static char *o_pidfile = NULL;
+static char *o_output = NULL;
 int o_0_delim = 0;
 
 
@@ -183,6 +184,7 @@ void usage() {
   printf("  -0 in batch mode (-b) separate paths with NUL byte instead of newline\n");
   printf("  -w wait until all pages are locked (only useful together with -d)\n");
   printf("  -P <pidfile> write a pidfile (only useful together with -l or -L)\n");
+  printf("  -o <type> output in machine friendly format.  'kv' for key=value pairs.\n");
   printf("  -v verbose\n");
   printf("  -q quiet\n");
   exit(1);
@@ -958,14 +960,13 @@ int main(int argc, char **argv) {
 
   pagesize = sysconf(_SC_PAGESIZE);
 
-  while((ch = getopt(argc, argv, "tevqklLdfFh0i:I:p:b:m:P:w")) != -1) {
+  while((ch = getopt(argc, argv, "tevqlLdfFh0i:I:p:b:m:P:wo:")) != -1) {
     switch(ch) {
       case '?': usage(); break;
       case 't': o_touch = 1; break;
       case 'e': o_evict = 1; break;
       case 'q': o_quiet = 1; break;
       case 'v': o_verbose++; break;
-      case 'k': o_keyvalue = 1; break;
       case 'l': o_lock = 1;
                 o_touch = 1; break;
       case 'L': o_lockall = 1;
@@ -987,6 +988,7 @@ int main(int argc, char **argv) {
       case 'b': o_batch = optarg; break;
       case '0': o_0_delim = 1; break;
       case 'P': o_pidfile = optarg; break;
+      case 'o': o_output = optarg; break;
     }
   }
 
@@ -1061,7 +1063,7 @@ int main(int argc, char **argv) {
   }
 
   if (!o_quiet) {
-    if (o_keyvalue) {
+    if (strncmp (o_output,"kv",2) == 0) {
       char pagestr[9];
       if (o_touch)
         strcpy(pagestr, "Touched");
