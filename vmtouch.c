@@ -1062,18 +1062,7 @@ int main(int argc, char **argv) {
   }
 
   if (!o_quiet) {
-    if (strncmp (o_output,"kv",2) == 0) {
-      char pagestr[9];
-      if (o_touch)
-        strcpy(pagestr, "Touched");
-      else if (o_evict)
-        strcpy(pagestr, "Evicted");
-      else 
-        strcpy(pagestr, "Resident");
-      printf("Files=%" PRId64 " Directories=%" PRId64 " %sPages=%" PRId64 " TotalPages=%" PRId64 " %sSize=%" PRId64 " TotalSize=%" PRId64 " %sPercent=%.3g Elapsed=%.5g\n", 
-        total_files, total_dirs, pagestr, total_pages_in_core, total_pages, pagestr, total_pages_in_core_size, total_pages_size, pagestr, total_pages_in_core_perc, elapsed);
-    }
-    else {
+    if (o_output == NULL) {
       if (o_verbose) printf("\n");
       printf("           Files: %" PRId64 "\n", total_files);
       printf("     Directories: %" PRId64 "\n", total_dirs);
@@ -1090,6 +1079,12 @@ int main(int argc, char **argv) {
         printf("\n");
       }
       printf("         Elapsed: %.5g seconds\n", elapsed);
+    } else if (strncmp(o_output, "kv", 2) == 0) {
+      char *desc = o_touch ? "Touched" :
+                   o_evict ? "Evicted" :
+                             "Resident";
+      printf("Files=%" PRId64 " Directories=%" PRId64 " %sPages=%" PRId64 " TotalPages=%" PRId64 " %sSize=%" PRId64 " TotalSize=%" PRId64 " %sPercent=%.3g Elapsed=%.5g\n", 
+        total_files, total_dirs, desc, total_pages_in_core, total_pages, desc, total_pages_in_core_size, total_pages_size, desc, total_pages_in_core_perc, elapsed);
     }
   }
 
