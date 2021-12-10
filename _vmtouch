@@ -1,0 +1,43 @@
+#compdef vmtouch
+
+# Completion function for zsh
+
+local curcontext="$curcontext" desc="upper"
+local -a state line suf
+local size range
+
+# _numbers only exists in newer versions of zsh
+if (( $+functions[_numbers] )); then
+  size=":_numbers -u bytes size k m g"
+  range=":->ranges"
+fi
+
+_arguments -C -s -S -A "-*" \
+  '(-e)-t[touch pages into memory]' \
+  '(-t -l -L)-e[evict pages from memory]' \
+  '(-e -L -t)-l[lock pages in physical memory with mlock(2)]' \
+  '(-e -l -t)-L[lock pages in physical memory with mlockall(2)]' \
+  '(-e)-d[daemon mode]' \
+  "-m+[specify max file size to touch]:size$size" \
+  "-p+[use the specified portion instead of the entire file]:range$range" \
+  '-f[follow symbolic links]' \
+  "-F[don't crawl different filesystems]" \
+  '-h[also count hardlinked copies]' \
+  '-i+[ignore files and directories that match specified pattern]:pattern' \
+  '-I+[only process files that match specified pattern]:pattern' \
+  '-b+[get files or directories from the list file]:list file:_files' \
+  '-0[in batch mode (-b) separate paths with NUL byte instead of newline]' \
+  '(-q -v)-w[wait until all pages are locked (only useful together with -d)]' \
+  '-P[write a pidfile (only useful together with -l or -L)]:pid file:_files' \
+  '(-q)-o+[output in machine friendly format]:format:((kv\:key=value\ pairs))' \
+  '(-q)-v[verbose]' \
+  '(-o -v)-q[quiet mode]' \
+  '*:file or directory:_files' && return
+
+[[ -z $state ]] && return 1 # no completion matches added
+
+if ! compset -P 1 '*-'; then
+  compset -S '-*' || suf=( -q -S- )
+  desc=lower
+fi
+_numbers $suf -u bytes "$desc range" k m g
