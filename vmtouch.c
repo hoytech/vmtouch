@@ -444,7 +444,7 @@ static void print_page_residency_chart(char *mincore_array, int64_t pages_in_fil
   if (pages_in_file <= RESIDENCY_CHART_WIDTH) pages_per_char = 1;
   else pages_per_char = (pages_in_file / RESIDENCY_CHART_WIDTH) + 1;
 
-  printf("\r[");
+  printf("[");
 
   for (i=0; i<pages_in_file; i++) {
     if (is_mincore_page_resident(mincore_array[i])) {
@@ -643,6 +643,7 @@ void vmtouch_file(char *path) {
 
           if (temp_time > (last_chart_print_time+CHART_UPDATE_INTERVAL)) {
             last_chart_print_time = temp_time;
+            printf("\r");
             print_page_residency_chart(mincore_array, pages_in_range);
           }
         }
@@ -650,7 +651,6 @@ void vmtouch_file(char *path) {
     }
 
     if (o_verbose) {
-      print_page_residency_chart(mincore_array, pages_in_range);
       printf("\n");
     }
 
