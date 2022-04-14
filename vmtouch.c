@@ -436,7 +436,7 @@ double gettimeofday_as_double() {
 
 
 
-void print_page_residency_chart(char *mincore_array, int64_t pages_in_file) {
+static void print_page_residency_chart(char *mincore_array, int64_t pages_in_file) {
   int64_t pages_in_core=0;
   int64_t pages_per_char;
   int64_t i,j=0,curr=0;
