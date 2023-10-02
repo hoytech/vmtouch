@@ -424,7 +424,7 @@ double gettimeofday_as_double() {
 
 
 
-void print_page_residency_chart(FILE *out, char *mincore_array, int64_t pages_in_file) {
+static void print_page_residency_chart(char *mincore_array, int64_t pages_in_file) {
   int64_t pages_in_core=0;
   int64_t pages_per_char;
   int64_t i,j=0,curr=0;
@@ -432,7 +432,7 @@ void print_page_residency_chart(FILE *out, char *mincore_array, int64_t pages_in
   if (pages_in_file <= RESIDENCY_CHART_WIDTH) pages_per_char = 1;
   else pages_per_char = (pages_in_file / RESIDENCY_CHART_WIDTH) + 1;
 
-  fprintf(out, "\r[");
+  printf("[");
 
   for (i=0; i<pages_in_file; i++) {
     if (is_mincore_page_resident(mincore_array[i])) {
@@ -441,23 +441,23 @@ void print_page_residency_chart(FILE *out, char *mincore_array, int64_t pages_in
     }
     j++;
     if (j == pages_per_char) {
-      if (curr == pages_per_char) fprintf(out, "O");
-      else if (curr == 0) fprintf(out, " ");
-      else fprintf(out, "o");
+      if (curr == pages_per_char) printf("O");
+      else if (curr == 0) printf(" ");
+      else printf("o");
 
       j = curr = 0;
     }
   }
 
   if (j) {
-    if (curr == j) fprintf(out, "O");
-    else if (curr == 0) fprintf(out, " ");
-    else fprintf(out, "o");
+    if (curr == j) printf("O");
+    else if (curr == 0) printf(" ");
+    else printf("o");
   }
 
-  fprintf(out, "] %" PRId64 "/%" PRId64, pages_in_core, pages_in_file);
+  printf("] %" PRId64 "/%" PRId64, pages_in_core, pages_in_file);
 
-  fflush(out);
+  fflush(stdout);
 }
 
 
@@ -618,7 +618,7 @@ void vmtouch_file(char *path) {
       }
 #endif
       last_chart_print_time = gettimeofday_as_double();
-      print_page_residency_chart(stdout, mincore_array, pages_in_range);
+      print_page_residency_chart(mincore_array, pages_in_range);
     }
 
     if (o_touch) {
@@ -631,14 +631,14 @@ void vmtouch_file(char *path) {
 
           if (temp_time > (last_chart_print_time+CHART_UPDATE_INTERVAL)) {
             last_chart_print_time = temp_time;
-            print_page_residency_chart(stdout, mincore_array, pages_in_range);
+            printf("\r");
+            print_page_residency_chart(mincore_array, pages_in_range);
           }
         }
       }
     }
 
     if (o_verbose) {
-      print_page_residency_chart(stdout, mincore_array, pages_in_range);
       printf("\n");
     }
 
