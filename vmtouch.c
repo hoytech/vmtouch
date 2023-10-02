@@ -165,7 +165,7 @@ void usage() {
   printf("  -f follow symbolic links\n");
   printf("  -F don't crawl different filesystems\n");
   printf("  -h also count hardlinked copies\n");
-  printf("  -i <pattern> ignores files and directories that match this pattern\n");
+  printf("  -i <pattern> ignore files and directories that match this pattern\n");
   printf("  -I <pattern> only process files that match this pattern\n");
   printf("  -b <list file> get files or directories from the list file\n");
   printf("  -0 in batch mode (-b) separate paths with NUL byte instead of newline\n");
@@ -982,15 +982,10 @@ int main(int argc, char **argv) {
   argc -= optind;
   argv += optind;
 
-  if (o_touch) {
-    if (o_evict) fatal("invalid option combination: -t and -e");
-  }
-
-  if (o_evict) {
-    if (o_lock) fatal("invalid option combination: -e and -l");
-  }
-
+  if (o_evict && o_lock) fatal("invalid option combination: -e and -l");
+  if (o_evict && o_lockall) fatal("invalid option combination: -e and -L");
   if (o_lock && o_lockall) fatal("invalid option combination: -l and -L");
+  if (o_touch && o_evict) fatal("invalid option combination: -t and -e");
 
   if (o_daemon) {
     if (!(o_lock || o_lockall)) fatal("daemon mode must be combined with -l or -L");
