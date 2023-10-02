@@ -32,6 +32,9 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS “AS IS” 
 #define MAX_NUMBER_OF_IGNORES 1024
 #define MAX_NUMBER_OF_FILENAME_FILTERS 1024
 #define MAX_FILENAME_LENGTH 1024
+#define UNIT_K 1024
+#define UNIT_M (1024 * 1024)
+#define UNIT_G (1024 * 1024 * 1024)
 
 #if defined(__linux__) || (defined(__hpux) && !defined(__LP64__))
 // Make sure off_t is 64 bits on linux and when creating 32bit programs
@@ -204,7 +207,7 @@ static void warning(const char *fmt, ...) {
 static void reopen_all() {
   if (freopen("/dev/null", "r", stdin) == NULL ||
       freopen("/dev/null", "w", stdout) == NULL ||
-      freopen("/dev/null", "w", stdout) == NULL)
+      freopen("/dev/null", "w", stderr) == NULL)
     fatal("freopen: %s", strerror(errno));
 }
 
@@ -255,22 +258,11 @@ void go_daemon() {
 char *pretty_print_size(int64_t inp) {
   static char output[100];
 
-  if (inp<1024) {
-    snprintf(output, sizeof(output), "%" PRId64, inp);
-    return output;
-  }
-  inp /= 1024;
-  if (inp<1024) {
-    snprintf(output, sizeof(output), "%" PRId64 "K", inp);
-    return output;
-  }
-  inp /= 1024;
-  if (inp<1024) {
-    snprintf(output, sizeof(output), "%" PRId64 "M", inp);
-    return output;
-  }
-  inp /= 1024;
-  snprintf(output, sizeof(output), "%" PRId64 "G", inp);
+  if (inp >= UNIT_G) snprintf(output, sizeof(output), "%" PRId64 "G", inp / UNIT_G);
+  else if (inp >= UNIT_M) snprintf(output, sizeof(output), "%" PRId64 "M", inp / UNIT_M);
+  else if (inp >= UNIT_K) snprintf(output, sizeof(output), "%" PRId64 "K", inp / UNIT_K);
+  else snprintf(output, sizeof(output), "%" PRId64, inp);
+
   return output;
 }
 
@@ -293,9 +285,9 @@ int64_t parse_size(char *inp) {
 
   if (isalpha(mult_char)) {
     switch(mult_char) {
-      case 'k': mult = 1024; break;
-      case 'm': mult = 1024*1024; break;
-      case 'g': mult = 1024*1024*1024; break;
+      case 'k': mult = UNIT_K; break;
+      case 'm': mult = UNIT_M; break;
+      case 'g': mult = UNIT_G; break;
       default: fatal("unknown size multiplier: %c", mult_char);
     }
     inp[len-1] = '\0';
@@ -348,9 +340,7 @@ void parse_range(char *inp) {
 
 
 void parse_ignore_item(char *inp) {
-  if (inp == NULL) {
-    return;
-  }
+  if (inp == NULL) return;
 
   if (strlen(inp) > MAX_FILENAME_LENGTH) {
     fatal("too long pattern provided to -i: %s", inp);
@@ -367,9 +357,7 @@ void parse_ignore_item(char *inp) {
 }
 
 void parse_filename_filter_item(char *inp) {
-  if (inp == NULL) {
-    return;
-  }
+  if (inp == NULL) return;
 
   if (strlen(inp) > MAX_FILENAME_LENGTH) {
     fatal("too long pattern provided to -I: %s", inp);
@@ -757,9 +745,7 @@ void vmtouch_crawl(char *path) {
 
   if (path[tp_path_len-1] == '/' && tp_path_len > 1) path[tp_path_len-1] = '\0'; // prevent ugly double slashes when printing path names
 
-  if (is_ignored(path)) {
-    return;
-  }
+  if (is_ignored(path)) return;
 
   res = o_followsymlinks ? stat(path, &sb) : lstat(path, &sb);
 
@@ -776,11 +762,9 @@ void vmtouch_crawl(char *path) {
       if (!orig_device_inited) {
         orig_device = sb.st_dev;
         orig_device_inited = 1;
-      } else {
-        if (sb.st_dev != orig_device) {
-          warning("not recursing into separate filesystem %s", path);
-          return;
-        }
+      } else if (sb.st_dev != orig_device) {
+        warning("not recursing into separate filesystem %s", path);
+        return;
       }
     }
 
@@ -982,13 +966,9 @@ int main(int argc, char **argv) {
   argc -= optind;
   argv += optind;
 
-  if (o_touch) {
-    if (o_evict) fatal("invalid option combination: -t and -e");
-  }
+  if (o_touch && o_evict) fatal("invalid option combination: -t and -e");
 
-  if (o_evict) {
-    if (o_lock) fatal("invalid option combination: -e and -l");
-  }
+  if (o_evict && o_lock) fatal("invalid option combination: -e and -l");
 
   if (o_lock && o_lockall) fatal("invalid option combination: -l and -L");
 
@@ -1016,9 +996,7 @@ int main(int argc, char **argv) {
 
   gettimeofday(&start_time, NULL);
 
-  if (o_batch) {
-      vmtouch_batch_crawl(o_batch);
-  }
+  if (o_batch) vmtouch_batch_crawl(o_batch);
 
   for (i=0; i<argc; i++) vmtouch_crawl(argv[i]);
 
@@ -1030,10 +1008,8 @@ int main(int argc, char **argv) {
   double  elapsed                  = (end_time.tv_sec - start_time.tv_sec) + (double)(end_time.tv_usec - start_time.tv_usec)/1000000.0;
 
   if (o_lock || o_lockall) {
-    if (o_lockall) {
-      if (mlockall(MCL_CURRENT))
-        fatal("unable to mlockall (%s)", strerror(errno));
-    }
+    if (o_lockall && mlockall(MCL_CURRENT))
+      fatal("unable to mlockall (%s)", strerror(errno));
 
     if (o_pidfile) {
       register_signals_for_pidfile();
