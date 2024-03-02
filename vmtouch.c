@@ -157,7 +157,11 @@ void usage() {
   printf("Usage: vmtouch [OPTIONS] ... FILES OR DIRECTORIES ...\n\nOptions:\n");
   printf("  -t touch pages into memory\n");
   printf("  -e evict pages from memory\n");
+#if defined(__linux__)
+  printf("  -l lock pages in physical memory with mlock2(2)\n");
+#else
   printf("  -l lock pages in physical memory with mlock(2)\n");
+#endif
   printf("  -L lock pages in physical memory with mlockall(2)\n");
   printf("  -d daemon mode\n");
   printf("  -m <size> max file size to touch\n");
@@ -602,6 +606,13 @@ void vmtouch_file(char *path) {
     char *mincore_array = malloc(pages_in_range);
     if (mincore_array == NULL) fatal("Failed to allocate memory for mincore array (%s)", strerror(errno));
 
+#if defined(__linux__)
+    if (o_lock) {
+      if (mlock2(mem, len_of_range, MLOCK_ONFAULT))
+        fatal("mlock2: %s (%s)", path, strerror(errno));
+    }
+#endif
+
     // 3rd arg to mincore is char* on BSD and unsigned char* on linux
     if (mincore(mem, len_of_range, (void*)mincore_array)) fatal("mincore %s (%s)", path, strerror(errno));
     for (i=0; i<pages_in_range; i++) {
@@ -645,10 +656,12 @@ void vmtouch_file(char *path) {
     free(mincore_array);
   }
 
+#ifndef __linux__
   if (o_lock) {
     if (mlock(mem, len_of_range))
       fatal("mlock: %s (%s)", path, strerror(errno));
   }
+#endif
 
   bail:
 
@@ -1016,6 +1029,18 @@ int main(int argc, char **argv) {
 
   gettimeofday(&start_time, NULL);
 
+  if (o_lock || o_lockall) {
+    if (o_lockall) {
+      if (mlockall(MCL_FUTURE))
+        fatal("unable to mlockall (%s)", strerror(errno));
+    }
+
+    if (o_pidfile) {
+      register_signals_for_pidfile();
+      write_pidfile();
+    }
+  }
+
   if (o_batch) {
       vmtouch_batch_crawl(o_batch);
   }
@@ -1030,16 +1055,6 @@ int main(int argc, char **argv) {
   double  elapsed                  = (end_time.tv_sec - start_time.tv_sec) + (double)(end_time.tv_usec - start_time.tv_usec)/1000000.0;
 
   if (o_lock || o_lockall) {
-    if (o_lockall) {
-      if (mlockall(MCL_CURRENT))
-        fatal("unable to mlockall (%s)", strerror(errno));
-    }
-
-    if (o_pidfile) {
-      register_signals_for_pidfile();
-      write_pidfile();
-    }
-
     if (!o_quiet) printf("LOCKED %" PRId64 " pages (%s)\n", total_pages, pretty_print_size(total_pages_size));
 
     if (o_wait) reopen_all();
