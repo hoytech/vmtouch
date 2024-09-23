@@ -504,6 +504,7 @@ void vmtouch_file(char *path) {
   int i;
   int res;
   int open_flags;
+  int mmap_flags = MAP_SHARED;
 
   retry_open:
 
@@ -572,12 +573,26 @@ void vmtouch_file(char *path) {
     len_of_range = len_of_file - offset;
   }
 
-  mem = mmap(NULL, len_of_range, PROT_READ, MAP_SHARED, fd, offset);
+#ifdef __linux__
+  if (o_lock && o_quiet) {
+    if (mlockall(MCL_FUTURE))
+      fatal("mlockall: %s (%s)", path, strerror(errno));
+    mmap_flags |= MAP_POPULATE;
+  }
+#endif
+
+  mem = mmap(NULL, len_of_range, PROT_READ, mmap_flags, fd, offset);
 
   if (mem == MAP_FAILED) {
     warning("unable to mmap file %s (%s), skipping", path, strerror(errno));
     goto bail;
   }
+
+#ifdef __linux__
+  if (o_lock && !o_quiet) {
+    goto bail;
+  }
+#endif
 
   if (!aligned_p(mem)) fatal("mmap(%s) wasn't page aligned", path);
 
