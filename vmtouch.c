@@ -491,6 +491,42 @@ static int can_do_mincore(struct stat *st) {
          (st->st_mode&S_IWOTH) ||
          uid == 0;
 }
+
+#define __NR_cachestat 451
+
+struct cachestat_range {
+  __u64 off;
+  __u64 len;
+};
+
+struct cachestat {
+  __u64 nr_cache;
+  __u64 nr_dirty;
+  __u64 nr_writeback;
+  __u64 nr_evicted;
+  __u64 nr_recently_evicted;
+};
+
+int cachestat(int fd, struct cachestat_range *cstat_range, struct cachestat *cstat, unsigned int flags) {
+  return syscall(__NR_cachestat, fd, cstat_range, cstat, flags);
+}
+
+int cachestat_supported() {
+  static enum {
+      UNKNOWN,
+      SUPPORTED,
+      UNSUPPORTED
+  } state = UNKNOWN;
+
+  if (state == UNKNOWN) {
+    if (cachestat(-1, NULL, NULL, 0) && errno == ENOSYS) {
+      state = UNSUPPORTED;
+    } else {
+      state = SUPPORTED;
+    }
+  }
+  return state == SUPPORTED;
+}
 #endif
 
 
@@ -572,18 +608,29 @@ void vmtouch_file(char *path) {
     len_of_range = len_of_file - offset;
   }
 
-  mem = mmap(NULL, len_of_range, PROT_READ, MAP_SHARED, fd, offset);
+  pages_in_range = bytes2pages(len_of_range);
+  total_pages += pages_in_range;
 
+#if defined(__linux__)
+  if (!o_evict && !o_touch && !o_verbose && cachestat_supported()) {
+      struct cachestat cs;
+      struct cachestat_range cs_range = {
+        .off = offset,
+        .len = len_of_range
+      };
+      if (!cachestat(fd, &cs_range, &cs, 0)) {
+        total_pages_in_core += cs.nr_cache;
+        goto bail;
+      }
+  }
+#endif
+
+  mem = mmap(NULL, len_of_range, PROT_READ, MAP_SHARED, fd, offset);
   if (mem == MAP_FAILED) {
     warning("unable to mmap file %s (%s), skipping", path, strerror(errno));
     goto bail;
   }
-
   if (!aligned_p(mem)) fatal("mmap(%s) wasn't page aligned", path);
-
-  pages_in_range = bytes2pages(len_of_range);
-
-  total_pages += pages_in_range;
 
   if (o_evict) {
     if (o_verbose) printf("Evicting %s\n", path);
