@@ -881,6 +881,8 @@ static void vmtouch_batch_crawl(const char *path) {
   while ((read = getdelim(&line, &len, delim, f)) != -1) {
     // strip the newline character
     line[read-1] = '\0';
+    // skip comments
+    if (line[0] == '#') continue;
     vmtouch_crawl(line);
   }
 
