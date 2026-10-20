@@ -99,6 +99,49 @@ Normally, if multiple files both point to the same inode then vmtouch will ignor
 =back
 
 
+=head1 OUTPUT
+
+By default, vmtouch prints a summary for the files and directories it crawled.
+For example:
+
+    Resident Pages: 70/70139  280K/273M  0.0998%
+
+The three fields after C<Resident Pages:> mean:
+
+=over
+
+=item C<70/70139>
+
+70 pages were resident in memory out of 70139 mapped pages.
+
+=item C<280K/273M>
+
+The resident and total page counts multiplied by the system's page size.
+In this example the page size is 4096 bytes. C<K>, C<M>, and C<G> use
+multiples of 1024, with fractional parts discarded. These are page-based
+sizes, so a partial final page is counted as a full page; they need not equal
+the exact file sizes.
+
+=item C<0.0998%>
+
+The percentage of mapped pages that were resident: C<100 * 70 / 70139>,
+displayed to three significant digits. The percentage is omitted if no
+pages were mapped.
+
+=back
+
+These totals cover the mapped file ranges, including any restriction from
+C<-p>; they are not a measure of the whole system's memory usage. Residency
+is observed while crawling and can change before the command finishes.
+
+With C<-t> or C<-e>, the summary instead reports C<Touched Pages> or
+C<Evicted Pages> and their page-based size. These counts describe the pages
+processed, not a subsequent measurement of how many remain resident.
+
+C<Elapsed> is the time spent crawling and processing the paths, in seconds.
+C<-q> suppresses the summary.
+
+
 =head1 PORTABILITY
 
 The page residency summaries depend on C<mincore(2)> which first appeared in 4.4BSD but is not present on all unix systems.
